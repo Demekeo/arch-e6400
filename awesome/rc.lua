@@ -41,26 +41,30 @@ end
 -- {{{ Tema
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 
-local bg     = "#24283b"  -- Tokyo Night Storm: barra
-local bg_alt = "#1f2335"  -- menus/notificaciones
-local bg_hl  = "#292e42"  -- tags ocupados / resaltados
-local fg     = "#c0caf5"
-local fg_dim = "#565f89"
-local accent = "#7aa2f7"
-local red    = "#f7768e"
-local green  = "#9ece6a"
-local yellow = "#e0af68"
-local orange = "#ff9e64"
-local purple = "#bb9af7"
-local cyan   = "#7dcfff"
+local bg        = "#24273a"  -- Catppuccin Macchiato: barra
+local bg_alt    = "#1e2030"  -- menus/notificaciones (mantle)
+local bg_hl     = "#363a4f"  -- surface0: resaltados
+local fg        = "#cad3f5"  -- text
+local fg_dim    = "#6e738d"  -- overlay0
+local subtext0  = "#a5adcb"
+local subtext1  = "#b8c0e0"
+local accent    = "#8aadf4"  -- blue
+local red       = "#ed8796"
+local green     = "#a6da95"
+local yellow    = "#eed49f"
+local orange    = "#f5a97f"  -- peach
+local purple    = "#c6a0f6"  -- mauve
+local cyan      = "#91d7e3"  -- sky
+local pink      = "#f5bde6"
+local teal      = "#8bd5ca"
 
-beautiful.font          = "Inter 10"
-beautiful.taglist_font  = "Inter Bold 10"
+beautiful.font          = "JetBrainsMono Nerd Font 9"
+beautiful.taglist_font  = "JetBrainsMono Nerd Font Bold 9"
 beautiful.border_width  = 2
-beautiful.border_normal = bg_alt
+beautiful.border_normal = "#6e5a7e"
 beautiful.border_focus  = accent
 beautiful.border_marked = purple
-beautiful.useless_gap   = 6
+beautiful.useless_gap   = 8
 
 beautiful.taglist_spacing = 4
 beautiful.taglist_shape = gears.shape.rounded_rect
@@ -76,10 +80,11 @@ beautiful.taglist_fg_urgent   = bg
 
 beautiful.tasklist_bg_normal = bg
 beautiful.tasklist_fg_normal = fg_dim
-beautiful.tasklist_bg_focus  = bg_alt
+beautiful.tasklist_bg_focus  = bg_hl
 beautiful.tasklist_fg_focus  = fg
 beautiful.tasklist_bg_urgent = red
 beautiful.tasklist_fg_urgent = bg
+beautiful.tasklist_spacing   = 2
 
 beautiful.tooltip_bg_color     = bg_alt
 beautiful.tooltip_fg_color     = fg
@@ -105,7 +110,7 @@ beautiful.notification_opacity      = 0.96
 
 beautiful.wibar_bg     = bg
 beautiful.wibar_fg     = fg
-beautiful.wibar_height = 34
+beautiful.wibar_height = 35
 
 -- Fondo oscuro azulado a juego con la barra (se instala con el repo).
 local wallpaper = gears.filesystem.get_configuration_dir() .. "wallpaper.png"
@@ -135,15 +140,15 @@ local function blend(c1, c2, t)
 end
 
 local tag_colors = {
-    "#f7768e", -- 1 rosa
-    "#ff9e64", -- 2 naranja
-    "#e0af68", -- 3 amarillo
-    "#9ece6a", -- 4 verde
-    "#73daca", -- 5 teal
-    "#7dcfff", -- 6 cian
-    "#7aa2f7", -- 7 azul
-    "#bb9af7", -- 8 violeta
-    "#c0caf5", -- 9 gris claro
+    "#ed8796", -- 1 rojo
+    "#f5a97f", -- 2 peach
+    "#eed49f", -- 3 amarillo
+    "#a6da95", -- 4 verde
+    "#8bd5ca", -- 5 teal
+    "#91d7e3", -- 6 sky
+    "#8aadf4", -- 7 azul
+    "#c6a0f6", -- 8 mauve
+    "#b7bdf8", -- 9 lavender
 }
 
 -- Cada tag con su propio color: seleccionado = color pleno, ocupado = color
@@ -177,8 +182,8 @@ editor_cmd = terminal .. " -e " .. editor
 modkey     = "Mod4"
 
 awful.layout.layouts = {
-    awful.layout.suit.tile,
     awful.layout.suit.tile.left,
+    awful.layout.suit.tile,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.max,
     awful.layout.suit.fair,
@@ -225,16 +230,61 @@ local function make_label(text)
     return w
 end
 
--- Lanzador: icono de Tux en violeta (clic = menu principal).
-local launcher = make_icon("\u{f17c}", purple)
-launcher:buttons(gears.table.join(
-    awful.button({}, 1, function() mymainmenu:toggle() end)
-))
+local function colorize(label, text, color)
+    label.markup = '<span foreground="' .. color .. '">' .. text .. "</span>"
+end
 
--- Reloj: icono cian, fecha en gris y hora en verde y negrita.
+-- Menu de energia (clic derecho en el logo Arch).
+local power_menu = awful.menu({
+    items = {
+        { "Cerrar sesión", function() awesome.quit() end },
+        { "Reiniciar", "systemctl reboot" },
+        { "Apagar", "systemctl poweroff" },
+    },
+    theme = { width = 170, height = 26 },
+})
+
+-- Lanzadores rapidos de la izquierda.
+local function make_launcher(glyph, color, cmd, right_cmd)
+    local w = wibox.widget.textbox()
+    w.font   = "Symbols Nerd Font 14"
+    w.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+    local btns = gears.table.join(
+        awful.button({}, 1, function()
+            if type(cmd) == "function" then cmd() else awful.spawn(cmd) end
+        end)
+    )
+    if right_cmd then
+        btns = gears.table.join(btns, awful.button({}, 3, right_cmd))
+    end
+    w:buttons(btns)
+    return wibox.container.margin(w, 3, 3)
+end
+
+local launchers = wibox.layout.fixed.horizontal()
+launchers.spacing = 2
+launchers:add(make_launcher("\u{f120}", pink, terminal))
+launchers:add(make_launcher("\u{f303}", purple,
+    function() mymainmenu:toggle() end,
+    function() power_menu:show() end))
+launchers:add(make_launcher("\u{f044}", accent, editor_cmd))
+launchers:add(make_launcher("\u{f07b}", yellow, "thunar"))
+launchers:add(make_launcher("\u{f269}", orange, "firefox"))
+launchers:add(make_launcher("\u{f135}", red, "rofi -show drun"))
+launchers:add(make_launcher("\u{f030}", green, "flameshot gui"))
+
+local function make_sep()
+    local w = wibox.widget.textbox()
+    w.font   = "JetBrainsMono Nerd Font 14"
+    w.markup = '<span foreground="#8087a2">│</span>'
+    return w
+end
+
+-- Reloj: calendario + fecha, reloj + hora (verde), como en la referencia.
 local clock = wibox.widget.textclock(
-    '<span foreground="' .. cyan .. '">\u{f017}</span>  '
-    .. '<span foreground="' .. fg_dim .. '">%a %d %b</span>  '
+    '<span foreground="' .. fg_dim .. '">\u{f073}</span>  '
+    .. '<span foreground="' .. subtext1 .. '">%a %d %b</span>  '
+    .. '<span foreground="' .. green .. '">\u{f017}</span>  '
     .. '<span foreground="' .. green .. '"><b>%H:%M</b></span> ',
     10
 )
@@ -262,7 +312,7 @@ if has_calendar then
 end
 
 -- Volumen: clic = pavucontrol, boton central = silenciar, rueda = +/- 5%.
-local vol_icon  = make_icon("\u{f028}", green)
+local vol_icon  = make_icon("\u{f025}", fg)
 local vol_label = make_label("--%")
 local volume = wibox.widget {
     vol_icon, vol_label,
@@ -278,16 +328,10 @@ awful.widget.watch(
         local vol = tonumber(stdout:match("(%d+)%%"))
         if not vol then return end
         local muted = stdout:find("Mute: yes") ~= nil
-        vol_label.text = vol .. "%"
-        local glyph, color
-        if muted or vol == 0 then
-            glyph, color = "\u{f026}", red
-        elseif vol < 50 then
-            glyph, color = "\u{f027}", green
-        else
-            glyph, color = "\u{f028}", green
-        end
-        vol_icon.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+        local color = fg
+        if muted or vol == 0 then color = red end
+        colorize(vol_label, vol .. "%", color)
+        vol_icon.markup = '<span foreground="' .. color .. '">\u{f025}</span>'
     end
 )
 
@@ -311,7 +355,7 @@ end
 
 local battery
 if bat_path then
-    local bat_icon  = make_icon("\u{f244}", yellow)
+    local bat_icon  = make_icon("\u{f244}", purple)
     local bat_label = make_label("--%")
     local bat_cap, bat_status = "?", "Desconocido"
 
@@ -335,19 +379,20 @@ if bat_path then
 
             local glyph, color
             if charging then
-                glyph, color = "\u{f0e7}", green
+                glyph, color = "\u{f0e7}", purple
             elseif cap >= 90 then
-                glyph, color = "\u{f240}", yellow
+                glyph, color = "\u{f240}", purple
             elseif cap >= 70 then
-                glyph, color = "\u{f241}", yellow
+                glyph, color = "\u{f241}", purple
             elseif cap >= 45 then
-                glyph, color = "\u{f242}", yellow
+                glyph, color = "\u{f242}", purple
             elseif cap >= 20 then
                 glyph, color = "\u{f243}", yellow
             else
                 glyph, color = "\u{f244}", red
             end
             bat_icon.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+            colorize(bat_label, cap .. "%", color)
         end
     )
 
@@ -363,7 +408,7 @@ if bat_path then
 end
 
 -- Brillo: rueda del raton sube/baja 10 %.
-local bright_icon  = make_icon("\u{f185}", yellow)
+local bright_icon  = make_icon("\u{f185}", pink)
 local bright_label = make_label("--%")
 local brightness = wibox.widget {
     bright_icon, bright_label,
@@ -381,8 +426,9 @@ awful.widget.watch(
         end
         brightness.visible = true
         bright_label.text = pct .. "%"
-        local color = yellow
+        local color = pink
         if pct < 30 then color = red end
+        colorize(bright_label, pct .. "%", color)
         bright_icon.markup = '<span foreground="' .. color .. '">\u{f185}</span>'
     end
 )
@@ -393,7 +439,7 @@ brightness:buttons(gears.table.join(
 
 -- RAM usada.
 local ram_pct   = 0
-local ram_icon  = make_icon("\u{f538}", purple)
+local ram_icon  = make_icon("\u{f2db}", pink)
 local ram_label = make_label("--%")
 local ram = wibox.widget {
     ram_icon, ram_label,
@@ -408,9 +454,10 @@ awful.widget.watch(
         if not pct then return end
         ram_pct = pct
         ram_label.text = pct .. "%"
-        local color = purple
+        local color = pink
         if pct >= 85 then color = red elseif pct >= 70 then color = yellow end
-        ram_icon.markup = '<span foreground="' .. color .. '">\u{f538}</span>'
+        colorize(ram_label, pct .. "%", color)
+        ram_icon.markup = '<span foreground="' .. color .. '">\u{f2db}</span>'
     end
 )
 ram:buttons(gears.table.join(
@@ -421,7 +468,7 @@ ram:buttons(gears.table.join(
 
 -- Disco: espacio usado en /.
 local disk_pct   = 0
-local disk_icon  = make_icon("\u{f0a0}", cyan)
+local disk_icon  = make_icon("\u{f1c0}", fg_dim)
 local disk_label = make_label("--")
 local disk = wibox.widget {
     disk_icon, disk_label,
@@ -436,9 +483,10 @@ awful.widget.watch(
         if not used then return end
         disk_pct = tonumber(pct) or 0
         disk_label.text = used
-        local color = cyan
+        local color = fg_dim
         if disk_pct >= 90 then color = red elseif disk_pct >= 75 then color = yellow end
-        disk_icon.markup = '<span foreground="' .. color .. '">\u{f0a0}</span>'
+        colorize(disk_label, used, subtext1)
+        disk_icon.markup = '<span foreground="' .. color .. '">\u{f1c0}</span>'
     end
 )
 disk:buttons(gears.table.join(
@@ -474,7 +522,8 @@ printf '%s' "$ssid"
         else
             if #name > 14 then name = name:sub(1, 13) .. "…" end
             wifi.visible = true
-            wifi_label.text = name
+            local safe = name:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+            colorize(wifi_label, safe, orange)
         end
     end
 )
@@ -482,20 +531,6 @@ wifi:buttons(gears.table.join(
     awful.button({}, 1, function() awful.spawn(terminal .. " -e nmtui") end)
 ))
 
--- Menu de energia en la barra.
-local power_menu = awful.menu({
-    items = {
-        { "Cerrar sesión", function() awesome.quit() end },
-        { "Reiniciar", "systemctl reboot" },
-        { "Apagar", "systemctl poweroff" },
-    },
-    theme = { width = 170, height = 26 },
-})
-
-local power = make_icon("\u{f011}", red)
-power:buttons(gears.table.join(
-    awful.button({}, 1, function() power_menu:show() end)
-))
 -- }}}
 
 -- {{{ Barra
@@ -562,10 +597,13 @@ awful.screen.connect_for_each_screen(function(s)
                 },
                 left   = 8,
                 right  = 8,
+                top    = 5,
+                bottom = 5,
                 widget = wibox.container.margin,
             },
             id     = "background_role",
             widget = wibox.container.background,
+            shape  = gears.shape.rounded_rect,
         },
     })
 
@@ -573,6 +611,27 @@ awful.screen.connect_for_each_screen(function(s)
         screen  = s,
         filter  = awful.widget.tasklist.filter.currenttags,
         buttons = tasklist_buttons,
+        -- Solo el icono del cliente, como los iconos de la referencia.
+        widget_template = {
+            {
+                {
+                    {
+                        id     = "icon_role",
+                        widget = wibox.widget.imagebox,
+                        resize = true,
+                    },
+                    width    = 22,
+                    height   = 22,
+                    strategy = "max",
+                    widget   = wibox.container.constraint,
+                },
+                margins = 3,
+                widget = wibox.container.margin,
+            },
+            id     = "background_role",
+            widget = wibox.container.background,
+            shape  = gears.shape.rounded_rect,
+        },
     })
 
     local tray = wibox.widget.systray()
@@ -580,10 +639,12 @@ awful.screen.connect_for_each_screen(function(s)
 
     local left = wibox.layout.fixed.horizontal()
     left.spacing = 6
-    left:add(launcher)
+    left:add(launchers)
+    left:add(make_sep())
     left:add(s.mytaglist)
+    left:add(s.mytasklist)
     left:add(s.mypromptbox)
-    left = wibox.container.margin(left, 8, 8)
+    left = wibox.container.margin(left, 10, 10)
 
     local right = wibox.layout.fixed.horizontal()
     right.spacing = 8
@@ -598,8 +659,7 @@ awful.screen.connect_for_each_screen(function(s)
     right:add(clock)
     right:add(tray)
     right:add(s.mylayoutbox)
-    right:add(power)
-    right = wibox.container.margin(right, 8, 8)
+    right = wibox.container.margin(right, 10, 10)
 
     s.mywibox = awful.wibar({
         position = "top",
@@ -609,10 +669,12 @@ awful.screen.connect_for_each_screen(function(s)
         fg       = fg,
     })
 
+    local spacer = wibox.widget.textbox()
+
     s.mywibox:setup({
         layout = wibox.layout.align.horizontal,
         left,
-        s.mytasklist,
+        spacer,
         right,
     })
 end)

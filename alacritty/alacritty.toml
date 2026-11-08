@@ -11,29 +11,29 @@ normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
 bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
 
 [colors.primary]
-background = "#16161e"
+background = "#0d1a25"
 foreground = "#c0caf5"
 
 [colors.cursor]
-text = "#16161e"
+text = "#0d1a25"
 cursor = "#7aa2f7"
 
 [colors.normal]
-black = "#15161e"
-red = "#f7768e"
-green = "#9ece6a"
-yellow = "#e0af68"
-blue = "#7aa2f7"
-magenta = "#bb9af7"
-cyan = "#7dcfff"
-white = "#a9b1d6"
+black = "#0d1a25"
+red = "#ed8796"
+green = "#a6da95"
+yellow = "#eed49f"
+blue = "#8aadf4"
+magenta = "#c6a0f6"
+cyan = "#91d7e3"
+white = "#b8c0e0"
 
 [colors.bright]
-black = "#414868"
-red = "#f7768e"
-green = "#9ece6a"
-yellow = "#e0af68"
-blue = "#7aa2f7"
-magenta = "#bb9af7"
-cyan = "#7dcfff"
-white = "#c0caf5"
+black = "#494d64"
+red = "#ed8796"
+green = "#a6da95"
+yellow = "#eed49f"
+blue = "#8aadf4"
+magenta = "#c6a0f6"
+cyan = "#91d7e3"
+white = "#cad3f5"

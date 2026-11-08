@@ -12,7 +12,7 @@ fi
 
 echo ">> Instalando paquetes (todo en repos oficiales de Arch)..."
 packages=(
-  picom rofi feh alacritty
+  picom rofi feh alacritty thunar
   papirus-icon-theme orchis-theme inter-font
   ttf-jetbrains-mono-nerd otf-font-awesome ttf-nerd-fonts-symbols
   noto-fonts noto-fonts-emoji

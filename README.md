@@ -84,13 +84,23 @@ awesome -k
 
 ## 4. Estética
 
-- Tema oscuro Tokyo Night (Storm) en la barra, tags y menús.
-- Barra superior de 34 px con: lanzador, 9 tags de colores, lista de
-  ventanas, bandeja del sistema, volumen, brillo, batería, RAM, disco,
-  wifi, fecha/hora, layout y apagado.
-- Cada tag tiene su propio color (rosa, naranja, amarillo, verde, teal,
-  cian, azul, violeta y gris): seleccionado en color pleno, ocupado en
-  tono tenue y vacío en tono muy tenue.
+- Tema **Catppuccin Macchiato** (`#24273a`) en la barra, tags, menús y
+  notificaciones.
+- Barra superior de 35 px, con esta distribución:
+  - **Izquierda**: lanzadores (Alacritty, Arch, editor, Thunar, Firefox,
+    rofi, Flameshot), separador, 9 tags de colores, iconos de las
+    ventanas abiertas y el prompt de awesome.
+  - **Centro**: vacío, como en la referencia.
+  - **Derecha**: volumen, brillo, batería, RAM, disco, wifi, fecha/hora,
+    bandeja del sistema y layout.
+- Lanzadores: clic izquierdo abre la aplicación; **clic derecho en el
+  logo de Arch** abre el menú de energía (cerrar sesión, reiniciar,
+  apagar).
+- Cada tag tiene su propio color (rojo, melocotón, amarillo, verde,
+  teal, celeste, azul, malva y lavanda): seleccionado en color pleno,
+  ocupado en tono tenue y vacío en tono muy tenue.
+- Los iconos de las ventanas en la barra muestran solo el icono de la
+  aplicación (sin texto), como en la referencia.
 - Interacción con la barra:
   - **Reloj**: clic abre el calendario; rueda cambia de mes.
   - **Volumen**: clic abre `pavucontrol`; rueda sube/baja 5 %; botón
@@ -101,21 +111,21 @@ awesome -k
   - **Disco**: clic muestra el espacio usado en `/` y su porcentaje.
   - **Wifi**: clic abre `nmtui` para gestionar la red.
   - **Layout** (icono de cuadrícula): clic cambia de layout.
-  - **Icono de apagado** (rojo, a la derecha): menú para cerrar sesión,
-    reiniciar o apagar.
 - Los iconos usan `Symbols Nerd Font` (paquete `ttf-nerd-fonts-symbols`),
   que incluye los glifos de Font Awesome. Si ves cuadrados en vez de
   iconos, comprueba con `fc-match "Symbols Nerd Font"`.
-- Bordes de 2 px y gaps de 6 px.
+- Bordes de 2 px, gaps de 8 px y layout inicial `tile.left` (ventana
+  principal a la derecha), igual que en la captura de referencia.
 - Esquinas redondeadas y sombras vía picom (sin blur).
-- Fondo: `awesome/wallpaper.png` (degradado azul oscuro con un brillo
-  teal suave, a juego con la barra). Se instala en
+- Fondo: `awesome/wallpaper.png` (degradado azul oscuro con brillos
+  azul y malva, a juego con la barra). Se instala en
   `~/.config/awesome/wallpaper.png`. Si falta, se usa el fondo de
   `archlinux-wallpaper`.
 - Iconos Papirus y tema GTK `Orchis-Dark`: se aplican solos gracias a
   `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
   y `~/.gtkrc-2.0`. Para cambiarlo a mano, usa `lxappearance`.
-- Fuente Inter; terminal JetBrains Mono Nerd Font.
+- Fuente JetBrains Mono Nerd Font en la barra y en la terminal; la
+  terminal usa fondo azul muy oscuro (`#0d1a25`) con acentos Macchiato.
 
 ## 5. Rendimiento
 
