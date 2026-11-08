@@ -11,19 +11,37 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 echo ">> Instalando paquetes (todo en repos oficiales de Arch)..."
-sudo pacman -S --needed --noconfirm \
-  picom rofi feh alacritty \
-  papirus-icon-theme orchis-theme inter-font \
-  ttf-jetbrains-mono-nerd otf-font-awesome ttf-nerd-fonts-symbols \
-  noto-fonts noto-fonts-emoji \
-  lxappearance qt6ct kvantum \
-  network-manager-applet \
-  brightnessctl playerctl xorg-xset xdotool wmctrl arandr \
-  maim flameshot \
-  archlinux-wallpaper \
-  firefox mesa-utils zram-generator \
-  pipewire pipewire-pulse pipewire-alsa wireplumber \
+packages=(
+  picom rofi feh alacritty
+  papirus-icon-theme orchis-theme inter-font
+  ttf-jetbrains-mono-nerd otf-font-awesome ttf-nerd-fonts-symbols
+  noto-fonts noto-fonts-emoji
+  lxappearance qt6ct kvantum
+  network-manager-applet
+  brightnessctl playerctl xorg-xset xdotool wmctrl arandr
+  maim flameshot
+  archlinux-wallpaper
+  firefox mesa-utils zram-generator
+  pipewire pipewire-pulse pipewire-alsa wireplumber
   pavucontrol xdg-user-dirs
+)
+
+# Si un paquete no existe o falla la red, NO abortamos: seguimos copiando
+# las configuraciones para que el escritorio quede usable.
+failed=()
+if ! sudo pacman -S --needed --noconfirm "${packages[@]}"; then
+  echo ">> La instalación conjunta falló. Probando paquete por paquete..."
+  for p in "${packages[@]}"; do
+    if ! sudo pacman -S --needed --noconfirm "$p"; then
+      failed+=("$p")
+    fi
+  done
+fi
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo ">> OJO: no se pudieron instalar: ${failed[*]}"
+  echo "   El escritorio se configura igual; instala esos paquetes luego."
+fi
 
 echo ">> Permisos para el brillo..."
 sudo usermod -aG video "$USER" || true
