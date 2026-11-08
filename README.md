@@ -96,11 +96,13 @@ awesome -k
 
 ## 5. Rendimiento
 
-- picom con `backend = "glx"` y sin blur: es lo que mejor va en la G98M.
-- Si hay tearing: `vsync = false` en `picom.conf`.
+- picom con `backend = "xrender"` y sin blur: en la G98M el backend `glx`
+  congela la pantalla (solo se repinta al mover/cambiar ventanas).
+- `vsync = false` y `unredir-if-possible = false` por el mismo motivo.
 - Si va lento: `shadow = false` y `corner-radius = 0`.
-- Si quieres el máximo rendimiento absoluto, comenta la línea de picom
-  en el autostart de `rc.lua` (pierdes sombras/esquinas, ganas fluidez).
+- Si quieres el máximo rendimiento absoluto, desactiva el compositor:
+  `touch ~/.config/picom/off` y `Mod4 + Ctrl + r` (pierdes sombras y
+  esquinas redondeadas, ganas fluidez). Para volver: `rm ~/.config/picom/off`.
 - No uses `LIBGL_ALWAYS_SOFTWARE`: en un Core 2 Duo es inusable.
 - Si cambias `picom.conf`, haz `pkill picom` y luego `Mod4 + Ctrl + r`
   para que awesome lo vuelva a lanzar.
@@ -109,6 +111,11 @@ awesome -k
 
 - **Vuelve al rc.lua por defecto**: hay un error de sintaxis. Ejecuta
   `awesome -k` y mira el mensaje; también `~/.xsession-errors`.
+- **La pantalla no se repinta** (solo cambia al mover/cambiar ventanas):
+  el compositor. Comprueba con `pkill picom`: si se arregla, es picom.
+  En esta GPU usa `backend = "xrender"` (el `glx` congela). Si aun así
+  falla, desactívalo del todo con `touch ~/.config/picom/off` y
+  `Mod4 + Ctrl + r`.
 - **picom no arranca**: ejecútalo a mano para ver el error:
   `picom --config ~/.config/picom/picom.conf`. Si el backend `glx` falla
   con nouveau, prueba `backend = "xrender"` (más lento) o comenta el
