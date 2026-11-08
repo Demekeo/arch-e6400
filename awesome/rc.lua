@@ -482,9 +482,13 @@ client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_n
 
 -- {{{ Autostart
 -- "once" se resetea al recargar awesome; con pgrep evitamos duplicados.
-awful.spawn.with_shell(
-    "pgrep -x picom >/dev/null || picom --config " ..
-    os.getenv("HOME") .. "/.config/picom/picom.conf"
-)
+-- Si existe ~/.config/picom/off no se lanza el compositor (pantalla
+-- congelada en algunas GPUs viejas):  touch ~/.config/picom/off
+if not gears.filesystem.file_readable(os.getenv("HOME") .. "/.config/picom/off") then
+    awful.spawn.with_shell(
+        "pgrep -x picom >/dev/null || picom --config " ..
+        os.getenv("HOME") .. "/.config/picom/picom.conf"
+    )
+end
 awful.spawn.with_shell("pgrep -x nm-applet >/dev/null || nm-applet")
 -- }}}

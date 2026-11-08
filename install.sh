@@ -90,7 +90,9 @@ xdg-user-dirs-update 2>/dev/null || true
 echo ">> Reiniciando picom con la config nueva..."
 pkill -x picom 2>/dev/null || true
 sleep 1
-if [ -n "${DISPLAY:-}" ]; then
+if [ -f "$HOME/.config/picom/off" ]; then
+  echo "   (~/.config/picom/off existe: no se lanza picom)"
+elif [ -n "${DISPLAY:-}" ]; then
   nohup picom --config "$HOME/.config/picom/picom.conf" >/dev/null 2>&1 &
 else
   echo "   (sin DISPLAY: se lanzara al entrar con startx)"
