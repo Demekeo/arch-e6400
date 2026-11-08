@@ -57,6 +57,7 @@ local purple    = "#c6a0f6"  -- mauve
 local cyan      = "#91d7e3"  -- sky
 local pink      = "#f5bde6"
 local teal      = "#8bd5ca"
+local transparent = "#00000000"
 
 beautiful.font          = "JetBrainsMono Nerd Font 9"
 beautiful.taglist_font  = "JetBrainsMono Nerd Font Bold 9"
@@ -108,19 +109,14 @@ beautiful.notification_border_width = 1
 beautiful.notification_shape        = gears.shape.rounded_rect
 beautiful.notification_opacity      = 0.96
 
-beautiful.wibar_bg     = bg
-beautiful.wibar_fg     = fg
-beautiful.wibar_height = 35
+beautiful.wibar_bg      = bg
+beautiful.wibar_fg      = fg
+beautiful.wibar_height  = 35
+-- Barra translucida: picom (xrender) respeta _NET_WM_WINDOW_OPACITY.
+beautiful.wibar_opacity = 0.90
 
--- Fondo oscuro azulado a juego con la barra (se instala con el repo).
-local wallpaper = gears.filesystem.get_configuration_dir() .. "wallpaper.png"
-if not gears.filesystem.file_readable(wallpaper) then
-    wallpaper = "/usr/share/backgrounds/archlinux/awesome.png"
-end
-if not gears.filesystem.file_readable(wallpaper) then
-    wallpaper = gears.filesystem.get_themes_dir() .. "default/background.png"
-end
-beautiful.wallpaper = wallpaper
+-- El fondo lo gestiona ~/.local/bin/wallpaper-menu con feh y se aplica en
+-- ~/.xinitrc antes de arrancar awesome. No usamos gears.wallpaper.
 -- }}}
 
 -- {{{ Colores por tag
@@ -234,6 +230,33 @@ local function colorize(label, text, color)
     label.markup = '<span foreground="' .. color .. '">' .. text .. "</span>"
 end
 
+-- Tooltips de ayuda en la barra.
+local tooltips = {}
+local function add_tip(widget, text)
+    tooltips[#tooltips + 1] = awful.tooltip({
+        objects              = { widget },
+        text                 = text,
+        mode                 = "outside",
+        preferred_positions  = { "bottom" },
+    })
+end
+
+-- Envuelve un widget para que se resalte al pasar el raton.
+local function hoverable(widget)
+    local bg = wibox.container.background(widget)
+    bg.bg    = transparent
+    bg.shape = gears.shape.rounded_rect
+    widget:connect_signal("mouse::enter", function() bg.bg = bg_hl end)
+    widget:connect_signal("mouse::leave", function() bg.bg = transparent end)
+    local box = wibox.container.margin(bg, 4, 4, 4, 4)
+    -- Si el widget se oculta (wifi o brillo sin datos), no deja hueco.
+    widget:connect_signal("property::visible", function()
+        box.visible = widget.visible
+    end)
+    box.visible = widget.visible
+    return box
+end
+
 -- Menu de energia (clic derecho en el logo Arch).
 local power_menu = awful.menu({
     items = {
@@ -245,7 +268,7 @@ local power_menu = awful.menu({
 })
 
 -- Lanzadores rapidos de la izquierda.
-local function make_launcher(glyph, color, cmd, right_cmd)
+local function make_launcher(glyph, color, cmd, tip, right_cmd)
     local w = wibox.widget.textbox()
     w.font   = "Symbols Nerd Font 14"
     w.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
@@ -258,20 +281,31 @@ local function make_launcher(glyph, color, cmd, right_cmd)
         btns = gears.table.join(btns, awful.button({}, 3, right_cmd))
     end
     w:buttons(btns)
-    return wibox.container.margin(w, 3, 3)
+    if tip then add_tip(w, tip) end
+    return hoverable(w)
 end
 
 local launchers = wibox.layout.fixed.horizontal()
 launchers.spacing = 2
-launchers:add(make_launcher("\u{f120}", pink, terminal))
+launchers:add(make_launcher("\u{f120}", pink, terminal,
+    "Terminal (Mod4+Return)"))
 launchers:add(make_launcher("\u{f303}", purple,
     function() mymainmenu:toggle() end,
+    "Menu de Arch · clic derecho: energia",
     function() power_menu:show() end))
-launchers:add(make_launcher("\u{f044}", accent, editor_cmd))
-launchers:add(make_launcher("\u{f07b}", yellow, "thunar"))
-launchers:add(make_launcher("\u{f269}", orange, "firefox"))
-launchers:add(make_launcher("\u{f135}", red, "rofi -show drun"))
-launchers:add(make_launcher("\u{f030}", green, "flameshot gui"))
+launchers:add(make_launcher("\u{f044}", accent, editor_cmd,
+    "Editor de texto"))
+launchers:add(make_launcher("\u{f07b}", yellow, "thunar",
+    "Archivos (Mod4+E)"))
+launchers:add(make_launcher("\u{f269}", orange, "firefox",
+    "Firefox (Mod4+B)"))
+launchers:add(make_launcher("\u{f135}", red, "rofi -show drun",
+    "Aplicaciones (Mod4+D)"))
+launchers:add(make_launcher("\u{f030}", green, "flameshot gui",
+    "Captura de pantalla (Print)"))
+launchers:add(make_launcher("\u{f03e}", teal,
+    os.getenv("HOME") .. "/.local/bin/wallpaper-menu",
+    "Fondos de pantalla (Mod4+Shift+W)"))
 
 local function make_sep()
     local w = wibox.widget.textbox()
@@ -289,6 +323,7 @@ local clock = wibox.widget.textclock(
     10
 )
 clock.font = beautiful.font
+add_tip(clock, "Fecha y hora · clic: calendario · rueda: cambiar mes")
 
 -- Calendario al hacer clic en el reloj (awesome 4.3).
 local has_calendar, calendar_popup = pcall(require, "awful.widget.calendar_popup")
@@ -311,7 +346,8 @@ if has_calendar then
     cal:attach(clock, "tr", { on_hover = false })
 end
 
--- Volumen: clic = pavucontrol, boton central = silenciar, rueda = +/- 5%.
+-- Volumen: clic = pavucontrol, boton central/derecho = silenciar, rueda = +/-5%.
+local vol_pct   = 0
 local vol_icon  = make_icon("\u{f025}", fg)
 local vol_label = make_label("--%")
 local volume = wibox.widget {
@@ -319,6 +355,7 @@ local volume = wibox.widget {
     spacing = 4,
     layout  = wibox.layout.fixed.horizontal,
 }
+add_tip(volume, "Volumen: clic pavucontrol · rueda 5% · central/derecho silenciar")
 
 awful.widget.watch(
     { "sh", "-c", "LC_ALL=C pactl get-sink-volume @DEFAULT_SINK@; "
@@ -327,6 +364,7 @@ awful.widget.watch(
     function(_, stdout)
         local vol = tonumber(stdout:match("(%d+)%%"))
         if not vol then return end
+        vol_pct = vol
         local muted = stdout:find("Mute: yes") ~= nil
         local color = fg
         if muted or vol == 0 then color = red end
@@ -338,6 +376,7 @@ awful.widget.watch(
 volume:buttons(gears.table.join(
     awful.button({}, 1, function() awful.spawn("pavucontrol") end),
     awful.button({}, 2, function() awful.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle") end),
+    awful.button({}, 3, function() awful.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle") end),
     awful.button({}, 4, function() awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%") end),
     awful.button({}, 5, function() awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%") end)
 ))
@@ -364,6 +403,7 @@ if bat_path then
         spacing = 4,
         layout  = wibox.layout.fixed.horizontal,
     }
+    add_tip(battery, "Bateria: clic para ver nivel y estado")
 
     awful.widget.watch(
         { "sh", "-c", "cat " .. bat_path .. "/capacity " .. bat_path .. "/status" },
@@ -408,6 +448,7 @@ if bat_path then
 end
 
 -- Brillo: rueda del raton sube/baja 10 %.
+local bright_pct   = 0
 local bright_icon  = make_icon("\u{f185}", pink)
 local bright_label = make_label("--%")
 local brightness = wibox.widget {
@@ -415,6 +456,7 @@ local brightness = wibox.widget {
     spacing = 4,
     layout  = wibox.layout.fixed.horizontal,
 }
+add_tip(brightness, "Brillo: rueda 10% · clic: nivel actual")
 awful.widget.watch(
     { "sh", "-c", "brightnessctl -m 2>/dev/null | cut -d, -f4" },
     5,
@@ -425,6 +467,7 @@ awful.widget.watch(
             return
         end
         brightness.visible = true
+        bright_pct = pct
         bright_label.text = pct .. "%"
         local color = pink
         if pct < 30 then color = red end
@@ -433,6 +476,9 @@ awful.widget.watch(
     end
 )
 brightness:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        naughty.notify({ title = "Brillo", text = bright_pct .. "%", timeout = 3 })
+    end),
     awful.button({}, 4, function() awful.spawn("brightnessctl set +10%") end),
     awful.button({}, 5, function() awful.spawn("brightnessctl set 10%-") end)
 ))
@@ -446,6 +492,7 @@ local ram = wibox.widget {
     spacing = 4,
     layout  = wibox.layout.fixed.horizontal,
 }
+add_tip(ram, "RAM: clic para ver el uso · clic derecho: htop")
 awful.widget.watch(
     { "sh", "-c", [[free -m | awk '/^Mem:/ {printf "%d", $3/$2*100}']] },
     5,
@@ -463,7 +510,8 @@ awful.widget.watch(
 ram:buttons(gears.table.join(
     awful.button({}, 1, function()
         naughty.notify({ title = "RAM", text = "Uso: " .. ram_pct .. "%", timeout = 4 })
-    end)
+    end),
+    awful.button({}, 3, function() awful.spawn(terminal .. " -e htop") end)
 ))
 
 -- Disco: espacio usado en /.
@@ -475,6 +523,7 @@ local disk = wibox.widget {
     spacing = 4,
     layout  = wibox.layout.fixed.horizontal,
 }
+add_tip(disk, "Disco /: clic para ver el uso · clic derecho: abrir en Thunar")
 awful.widget.watch(
     { "sh", "-c", [[df -h / | awk 'NR==2 {print $3, $5}']] },
     60,
@@ -496,10 +545,12 @@ disk:buttons(gears.table.join(
             text  = "Usado: " .. disk_label.text .. " (" .. disk_pct .. "%)",
             timeout = 4,
         })
-    end)
+    end),
+    awful.button({}, 3, function() awful.spawn("thunar /") end)
 ))
 
 -- Red: SSID de la wifi activa o nombre de la conexion activa.
+local wifi_name  = ""
 local wifi_icon  = make_icon("\u{f1eb}", orange)
 local wifi_label = make_label("")
 local wifi = wibox.widget {
@@ -508,6 +559,7 @@ local wifi = wibox.widget {
     layout  = wibox.layout.fixed.horizontal,
 }
 wifi.visible = false
+add_tip(wifi, "Wifi: clic nmtui · clic derecho: nombre de la red")
 awful.widget.watch(
     { "sh", "-c", [[
 ssid=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}')
@@ -517,6 +569,7 @@ printf '%s' "$ssid"
     15,
     function(_, stdout)
         local name = stdout:gsub("%s+$", "")
+        wifi_name = name
         if name == "" then
             wifi.visible = false
         else
@@ -528,7 +581,14 @@ printf '%s' "$ssid"
     end
 )
 wifi:buttons(gears.table.join(
-    awful.button({}, 1, function() awful.spawn(terminal .. " -e nmtui") end)
+    awful.button({}, 1, function() awful.spawn(terminal .. " -e nmtui") end),
+    awful.button({}, 3, function()
+        naughty.notify({
+            title = "Red",
+            text  = wifi_name ~= "" and wifi_name or "Sin conexion",
+            timeout = 4,
+        })
+    end)
 ))
 
 -- }}}
@@ -556,23 +616,19 @@ local tasklist_buttons = gears.table.join(
         end
     end),
     awful.button({}, 3, function() awful.menu.client_list({ theme = { width = 250 } }) end),
+    awful.button({}, 2, function(c) c:kill() end),
     awful.button({}, 4, function() awful.client.focus.byidx(1) end),
     awful.button({}, 5, function() awful.client.focus.byidx(-1) end)
 )
 
-local function set_wallpaper(s)
-    if beautiful.wallpaper then
-        local wp = beautiful.wallpaper
-        if type(wp) == "function" then wp = wp(s) end
-        gears.wallpaper.maximized(wp, s, true)
-    end
-end
-
-screen.connect_signal("property::geometry", set_wallpaper)
+-- Si cambia la resolucion (arandr), volver a aplicar el fondo con feh.
+screen.connect_signal("property::geometry", function()
+    awful.spawn.with_shell(
+        os.getenv("HOME") .. "/.local/bin/wallpaper-apply"
+    )
+end)
 
 awful.screen.connect_for_each_screen(function(s)
-    set_wallpaper(s)
-
     awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
 
     s.mypromptbox = awful.widget.prompt()
@@ -583,6 +639,7 @@ awful.screen.connect_for_each_screen(function(s)
         awful.button({}, 4, function() awful.layout.inc(1) end),
         awful.button({}, 5, function() awful.layout.inc(-1) end)
     ))
+    add_tip(s.mylayoutbox, "Layout: clic cambia de disposicion")
 
     s.mytaglist = awful.widget.taglist({
         screen  = s,
@@ -647,19 +704,19 @@ awful.screen.connect_for_each_screen(function(s)
     left = wibox.container.margin(left, 10, 10)
 
     local right = wibox.layout.fixed.horizontal()
-    right.spacing = 8
-    right:add(volume)
-    right:add(brightness)
+    right.spacing = 6
+    right:add(hoverable(volume))
+    right:add(hoverable(brightness))
     if battery then
-        right:add(battery)
+        right:add(hoverable(battery))
     end
-    right:add(ram)
-    right:add(disk)
-    right:add(wifi)
-    right:add(clock)
+    right:add(hoverable(ram))
+    right:add(hoverable(disk))
+    right:add(hoverable(wifi))
+    right:add(hoverable(clock))
     right:add(tray)
-    right:add(s.mylayoutbox)
-    right = wibox.container.margin(right, 10, 10)
+    right:add(hoverable(s.mylayoutbox))
+    right = wibox.container.margin(right, 8, 8)
 
     s.mywibox = awful.wibar({
         position = "top",
@@ -667,6 +724,7 @@ awful.screen.connect_for_each_screen(function(s)
         height   = beautiful.wibar_height,
         bg       = bg,
         fg       = fg,
+        opacity  = beautiful.wibar_opacity,
     })
 
     local spacer = wibox.widget.textbox()
@@ -689,6 +747,17 @@ root.buttons(gears.table.join(
 -- }}}
 
 -- {{{ Atajos globales
+-- Mueve la ventana enfocada al tag anterior/siguiente sin cambiar de tag.
+local function move_focused_to_tag(offset)
+    local c = client.focus
+    if not c then return end
+    local t = c.first_tag
+    local idx = t and t.index or 1
+    local tags = c.screen.tags
+    local target = tags[((idx - 1 + offset) % #tags) + 1]
+    if target then c:move_to_tag(target) end
+end
+
 globalkeys = gears.table.join(
     awful.key({ modkey }, "s", hotkeys_popup.show_help,
         { description = "ver atajos", group = "awesome" }),
@@ -711,6 +780,10 @@ globalkeys = gears.table.join(
         { description = "intercambiar con siguiente", group = "client" }),
     awful.key({ modkey, "Shift" }, "k", function() awful.client.swap.byidx(-1) end,
         { description = "intercambiar con anterior", group = "client" }),
+    awful.key({ modkey, "Shift" }, "Left", function() move_focused_to_tag(-1) end,
+        { description = "mover ventana al tag anterior", group = "client" }),
+    awful.key({ modkey, "Shift" }, "Right", function() move_focused_to_tag(1) end,
+        { description = "mover ventana al tag siguiente", group = "client" }),
     awful.key({ modkey, "Control" }, "j", function() awful.screen.focus_relative(1) end,
         { description = "pantalla siguiente", group = "screen" }),
     awful.key({ modkey, "Control" }, "k", function() awful.screen.focus_relative(-1) end,
@@ -727,12 +800,27 @@ globalkeys = gears.table.join(
         { description = "terminal", group = "launcher" }),
     awful.key({ modkey }, "d", function() awful.spawn("rofi -show drun") end,
         { description = "lanzador rofi", group = "launcher" }),
+    awful.key({ modkey }, "e", function() awful.spawn("thunar") end,
+        { description = "archivos", group = "launcher" }),
+    awful.key({ modkey }, "b", function() awful.spawn("firefox") end,
+        { description = "navegador", group = "launcher" }),
     awful.key({ modkey }, "r", function() awful.screen.focused().mypromptbox:run() end,
         { description = "ejecutar", group = "launcher" }),
     awful.key({ modkey }, "p", function() menubar.show() end,
         { description = "menubar", group = "launcher" }),
+    awful.key({ modkey }, "grave", function() awful.spawn("rofi -show window") end,
+        { description = "cambiar de ventana (rofi)", group = "launcher" }),
+    awful.key({ modkey, "Shift" }, "w", function()
+        awful.spawn(os.getenv("HOME") .. "/.local/bin/wallpaper-menu")
+    end, { description = "gestor de fondos", group = "launcher" }),
+    awful.key({ modkey, "Shift" }, "p", function() power_menu:show() end,
+        { description = "menu de energia", group = "launcher" }),
+    awful.key({ modkey, "Shift" }, "s", function() awful.spawn("flameshot gui") end,
+        { description = "captura de pantalla", group = "launcher" }),
     awful.key({}, "Print", function() awful.spawn("flameshot gui") end,
         { description = "captura de pantalla", group = "launcher" }),
+    awful.key({ "Shift" }, "Print", function() awful.spawn("flameshot full -c") end,
+        { description = "captura completa al portapapeles", group = "launcher" }),
 
     -- Volumen y brillo
     awful.key({}, "XF86AudioRaiseVolume", function() awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%") end,
@@ -741,6 +829,8 @@ globalkeys = gears.table.join(
         { description = "bajar volumen", group = "hardware" }),
     awful.key({}, "XF86AudioMute", function() awful.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle") end,
         { description = "silenciar", group = "hardware" }),
+    awful.key({}, "XF86AudioMicMute", function() awful.spawn("pactl set-source-mute @DEFAULT_SOURCE@ toggle") end,
+        { description = "silenciar microfono", group = "hardware" }),
     awful.key({}, "XF86MonBrightnessUp", function() awful.spawn("brightnessctl set +10%") end,
         { description = "subir brillo", group = "hardware" }),
     awful.key({}, "XF86MonBrightnessDown", function() awful.spawn("brightnessctl set 10%-") end,
@@ -755,6 +845,10 @@ globalkeys = gears.table.join(
         { description = "pista anterior", group = "hardware" }),
 
     -- Awesome
+    awful.key({ modkey, "Control" }, "b", function()
+        local s = awful.screen.focused()
+        if s.mywibox then s.mywibox.visible = not s.mywibox.visible end
+    end, { description = "mostrar/ocultar barra", group = "awesome" }),
     awful.key({ modkey, "Control" }, "r", awesome.restart,
         { description = "recargar awesome", group = "awesome" }),
     awful.key({ modkey, "Shift" }, "q", awesome.quit,
@@ -903,6 +997,8 @@ client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_n
 -- }}}
 
 -- {{{ Autostart
+-- Fondo de pantalla (feh) y compositor.
+awful.spawn.with_shell(os.getenv("HOME") .. "/.local/bin/wallpaper-apply 2>/dev/null")
 -- "once" se resetea al recargar awesome; con pgrep evitamos duplicados.
 -- Si existe ~/.config/picom/off no se lanza el compositor (pantalla
 -- congelada en algunas GPUs viejas):  touch ~/.config/picom/off

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala los paquetes y copia las configuraciones de awesome.
+# Instala los paquetes y copia las configuraciones.
 # Uso:  cd arch-e6400 && bash install.sh
 set -euo pipefail
 
@@ -24,6 +24,10 @@ packages=(
   firefox mesa-utils zram-generator
   pipewire pipewire-pulse pipewire-alsa wireplumber
   pavucontrol xdg-user-dirs
+  zsh zsh-autosuggestions zsh-syntax-highlighting zsh-completions
+  eza bat zoxide htop
+  flatpak xdg-desktop-portal-gtk
+  git curl wget
 )
 
 # Si un paquete no existe o falla la red, NO abortamos: seguimos copiando
@@ -41,6 +45,25 @@ fi
 if [ ${#failed[@]} -gt 0 ]; then
   echo ">> OJO: no se pudieron instalar: ${failed[*]}"
   echo "   El escritorio se configura igual; instala esos paquetes luego."
+fi
+
+echo ">> Oh My Zsh y Powerlevel10k..."
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+  git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$HOME/.oh-my-zsh" || true
+fi
+if [ ! -d "$HOME/.powerlevel10k" ]; then
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$HOME/.powerlevel10k" || true
+fi
+
+echo ">> Flatpak + Flathub..."
+if command -v flatpak >/dev/null 2>&1; then
+  sudo flatpak remote-add --if-not-exists flathub \
+    https://flathub.org/repo/flathub.flatpakrepo || true
+fi
+
+echo ">> neofetch..."
+if [ -f neofetch/neofetch ]; then
+  sudo install -Dm755 neofetch/neofetch /usr/local/bin/neofetch
 fi
 
 echo ">> Permisos para el brillo..."
@@ -76,7 +99,26 @@ install_file gtk/settings.ini          "$HOME/.config/gtk-3.0/settings.ini"
 install_file gtk/settings.ini          "$HOME/.config/gtk-4.0/settings.ini"
 install_file gtk/gtkrc-2.0             "$HOME/.gtkrc-2.0"
 install_file xinitrc                   "$HOME/.xinitrc"
-chmod +x "$HOME/.xinitrc"
+install_file zsh/zshrc                 "$HOME/.zshrc"
+install_file zsh/p10k.zsh              "$HOME/.p10k.zsh"
+install_file neofetch/config.conf      "$HOME/.config/neofetch/config.conf"
+install_file wallpaper/wallpaper-apply "$HOME/.local/bin/wallpaper-apply"
+install_file wallpaper/wallpaper-menu  "$HOME/.local/bin/wallpaper-menu"
+chmod +x "$HOME/.xinitrc" "$HOME/.local/bin/wallpaper-apply" "$HOME/.local/bin/wallpaper-menu"
+
+echo ">> Copiando fondos de pantalla..."
+mkdir -p "$HOME/.config/awesome/wallpapers"
+cp -f wallpapers/*.png "$HOME/.config/awesome/wallpapers/"
+cp -f awesome/wallpaper.png "$HOME/.config/awesome/wallpapers/macchiato-default.png"
+if [ ! -f "$HOME/.config/awesome/wallpaper.conf" ]; then
+  printf '%s\n' "$HOME/.config/awesome/wallpaper.png" \
+    > "$HOME/.config/awesome/wallpaper.conf"
+fi
+
+echo ">> Shell por defecto: zsh..."
+if command -v zsh >/dev/null 2>&1 && [ "${SHELL:-}" != "/usr/bin/zsh" ]; then
+  sudo chsh -s /usr/bin/zsh "$USER" || true
+fi
 
 echo ">> zram (si no estaba configurado)..."
 if [ ! -f /etc/systemd/zram-generator.conf ]; then
@@ -87,6 +129,11 @@ fi
 sudo systemctl start systemd-zram-setup@zram0.service 2>/dev/null || true
 
 xdg-user-dirs-update 2>/dev/null || true
+
+echo ">> Aplicando el fondo de pantalla..."
+if [ -n "${DISPLAY:-}" ]; then
+  "$HOME/.local/bin/wallpaper-apply" 2>/dev/null || true
+fi
 
 echo ">> Reiniciando picom con la config nueva..."
 pkill -x picom 2>/dev/null || true
@@ -108,5 +155,6 @@ fi
 
 echo
 echo "Listo. Copia de seguridad de lo anterior en: $backup"
-echo "1) Cierra sesión y vuelve a entrar (para el grupo video)."
+echo "1) Cierra sesión y vuelve a entrar (para el grupo video y zsh)."
 echo "2) Arranca con:  startx"
+echo "3) Si quieres cambiar el prompt:  p10k configure"

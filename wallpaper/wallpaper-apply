@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Aplica el fondo guardado por wallpaper-menu.
+# Lo llama ~/.xinitrc antes de arrancar awesome y el propio gestor al elegir.
+
+confdir="${XDG_CONFIG_HOME:-$HOME/.config}/awesome"
+conf="$confdir/wallpaper.conf"
+default="$confdir/wallpaper.png"
+
+wp=""
+if [ -r "$conf" ]; then
+    wp=$(head -n 1 "$conf")
+fi
+
+if [ -z "$wp" ] || [ ! -r "$wp" ]; then
+    wp="$default"
+fi
+
+[ -r "$wp" ] || exit 0
+exec feh --no-fehbg --bg-fill "$wp"

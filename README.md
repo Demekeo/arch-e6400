@@ -7,9 +7,17 @@ Configuración pensada para: Core 2 Duo T9600, 4 GB RAM, Quadro NVS 160M
 
 ```
 awesome/rc.lua          -> ~/.config/awesome/rc.lua
+awesome/wallpaper.png   -> fondo por defecto
+wallpapers/*.png        -> ~/.config/awesome/wallpapers/ (gestor de fondos)
+wallpaper/wallpaper-menu-> ~/.local/bin/wallpaper-menu (rofi + feh)
+wallpaper/wallpaper-apply-> ~/.local/bin/wallpaper-apply
 picom/picom.conf        -> ~/.config/picom/picom.conf
 rofi/config.rasi        -> ~/.config/rofi/config.rasi
 alacritty/alacritty.toml-> ~/.config/alacritty/alacritty.toml
+zsh/zshrc              -> ~/.zshrc (Oh My Zsh)
+zsh/p10k.zsh           -> ~/.p10k.zsh (Powerlevel10k)
+neofetch/neofetch       -> /usr/local/bin/neofetch
+neofetch/config.conf    -> ~/.config/neofetch/config.conf
 gtk/settings.ini        -> ~/.config/gtk-3.0/settings.ini y gtk-4.0
 gtk/gtkrc-2.0           -> ~/.gtkrc-2.0
 xinitrc                 -> ~/.xinitrc
@@ -44,9 +52,12 @@ bash install.sh
 
 El script guarda una copia de las configs anteriores en
 `~/.config-backup-<fecha>`, añade una regla udev para que el grupo `video`
-pueda controlar el brillo y al final valida la sintaxis con `awesome -k`.
+pueda controlar el brillo, instala **Oh My Zsh + Powerlevel10k** (clona
+ambos de GitHub), pone **zsh** como shell por defecto e instala
+**neofetch**, **flatpak** con Flathub y el gestor de fondos.
 Si añade tu usuario al grupo `video`, cierra sesión y vuelve a entrar
-antes de usar las teclas de brillo.
+antes de usar las teclas de brillo (también es necesario para que zsh
+sea tu shell).
 
 Luego:
 
@@ -68,31 +79,44 @@ awesome -k
 |---|---|
 | `Mod4 + Return` | terminal (alacritty) |
 | `Mod4 + d` | lanzador rofi |
+| `Mod4 + e` | archivos (Thunar) |
+| `Mod4 + b` | Firefox |
+| `Mod4 + \`` | cambiar de ventana (rofi) |
 | `Mod4 + r` | prompt de awesome |
 | `Mod4 + j / k` | cambiar foco |
 | `Mod4 + Shift + j / k` | mover ventana |
+| `Mod4 + Shift + Left / Right` | mover ventana al tag anterior/siguiente |
 | `Mod4 + 1..9` | ir a tag |
 | `Mod4 + Shift + 1..9` | mover ventana a tag |
 | `Mod4 + space` | cambiar layout |
 | `Mod4 + f` | pantalla completa |
 | `Mod4 + Shift + c` | cerrar ventana |
+| `Mod4 + Shift + w` | gestor de fondos |
+| `Mod4 + Shift + p` | menú de energía |
+| `Mod4 + Shift + s` / `Print` | captura de pantalla (flameshot) |
+| `Shift + Print` | captura completa al portapapeles |
+| `Mod4 + Ctrl + b` | mostrar/ocultar la barra |
 | `Mod4 + Ctrl + r` | recargar awesome |
 | `Mod4 + Shift + q` | salir |
-| `Print` | captura (flameshot) |
 | Teclas volumen / brillo | funcionan |
+| `XF86AudioMicMute` | silenciar micrófono |
 | Play / Next / Prev | controlan el reproductor (playerctl) |
 
-## 4. Estética
+## 4. Estética y barra
 
 - Tema **Catppuccin Macchiato** (`#24273a`) en la barra, tags, menús y
   notificaciones.
-- Barra superior de 35 px, con esta distribución:
-  - **Izquierda**: lanzadores (Alacritty, Arch, editor, Thunar, Firefox,
-    rofi, Flameshot), separador, 9 tags de colores, iconos de las
-    ventanas abiertas y el prompt de awesome.
+- Barra superior de 35 px **translúcida** (`opacity = 0.90`): picom
+  respeta la transparencia. Si desactivas picom, la barra se ve opaca.
+- Distribución de la barra:
+  - **Izquierda**: 8 lanzadores (Alacritty, Arch, editor, Thunar,
+    Firefox, rofi, Flameshot y fondos), separador, 9 tags de colores,
+    iconos de las ventanas abiertas y el prompt de awesome.
   - **Centro**: vacío, como en la referencia.
   - **Derecha**: volumen, brillo, batería, RAM, disco, wifi, fecha/hora,
     bandeja del sistema y layout.
+- Los botones de la barra se **resaltan al pasar el ratón** y muestran un
+  tooltip con lo que hace cada clic.
 - Lanzadores: clic izquierdo abre la aplicación; **clic derecho en el
   logo de Arch** abre el menú de energía (cerrar sesión, reiniciar,
   apagar).
@@ -103,29 +127,73 @@ awesome -k
   aplicación (sin texto), como en la referencia.
 - Interacción con la barra:
   - **Reloj**: clic abre el calendario; rueda cambia de mes.
-  - **Volumen**: clic abre `pavucontrol`; rueda sube/baja 5 %; botón
-    central silencia.
-  - **Brillo**: rueda del ratón sube/baja 10 %.
+  - **Volumen**: clic abre `pavucontrol`; botón central o derecho
+    silencia; rueda sube/baja 5 %.
+  - **Brillo**: rueda del ratón sube/baja 10 %; clic muestra el nivel.
   - **Batería**: clic muestra un aviso con nivel y estado de carga.
-  - **RAM**: clic muestra el porcentaje de memoria en uso.
-  - **Disco**: clic muestra el espacio usado en `/` y su porcentaje.
-  - **Wifi**: clic abre `nmtui` para gestionar la red.
+  - **RAM**: clic muestra el porcentaje en uso; clic derecho abre `htop`.
+  - **Disco**: clic muestra el espacio usado en `/`; clic derecho abre
+    Thunar en `/`.
+  - **Wifi**: clic abre `nmtui`; clic derecho muestra el nombre de la red.
   - **Layout** (icono de cuadrícula): clic cambia de layout.
+  - **Iconos de ventanas**: clic enfoca o minimiza; clic central cierra;
+    clic derecho abre la lista de ventanas; rueda cambia el foco.
 - Los iconos usan `Symbols Nerd Font` (paquete `ttf-nerd-fonts-symbols`),
   que incluye los glifos de Font Awesome. Si ves cuadrados en vez de
   iconos, comprueba con `fc-match "Symbols Nerd Font"`.
 - Bordes de 2 px, gaps de 8 px y layout inicial `tile.left` (ventana
   principal a la derecha), igual que en la captura de referencia.
 - Esquinas redondeadas y sombras vía picom (sin blur).
-- Fondo: `awesome/wallpaper.png` (degradado azul oscuro con brillos
-  azul y malva, a juego con la barra). Se instala en
-  `~/.config/awesome/wallpaper.png`. Si falta, se usa el fondo de
-  `archlinux-wallpaper`.
 - Iconos Papirus y tema GTK `Orchis-Dark`: se aplican solos gracias a
   `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
   y `~/.gtkrc-2.0`. Para cambiarlo a mano, usa `lxappearance`.
-- Fuente JetBrains Mono Nerd Font en la barra y en la terminal; la
-  terminal usa fondo azul muy oscuro (`#0d1a25`) con acentos Macchiato.
+- Fuente JetBrains Mono Nerd Font en la barra y en la terminal.
+
+### Terminal: zsh + Oh My Zsh + Powerlevel10k
+
+- `install.sh` instala **zsh** y lo deja como shell por defecto, clona
+  **Oh My Zsh** en `~/.oh-my-zsh` y **Powerlevel10k** en `~/.powerlevel10k`.
+- El prompt de p10k usa el logo de Arch, directorio, rama de git, estado,
+  batería y hora, con colores Macchiato.
+- Para cambiar el estilo del prompt: `p10k configure`.
+- Plugins: `git`, `sudo`, `extract`, `colored-man-pages`,
+  `history-substring-search`, autosugerencias y resaltado de sintaxis.
+- `eza` sustituye a `ls` con iconos, `bat` a `cat` con colores y `zoxide`
+  añade `z carpeta` para saltar a directorios usados.
+- Alacritty usa fondo `#0d1a25`, 92 % de opacidad, cursor de bloque sin
+  parpadeo y JetBrains Mono Nerd Font 10.5.
+
+### Fondos de pantalla
+
+- Gestor propio con rofi + feh: `wallpaper-menu` (o el icono de imagen
+  de la barra, o `Mod4 + Shift + W`) muestra todos los fondos y aplica el
+  elegido al instante.
+- `wallpaper-menu random` elige uno al azar.
+- Se incluyen 5 fondos Catppuccin en `~/.config/awesome/wallpapers/`
+  (azul, aurora, malva, bosque y atardecer). Puedes añadir los tuyos a
+  `~/Pictures/Wallpapers/`.
+- La elección se guarda en `~/.config/awesome/wallpaper.conf` y se vuelve
+  a aplicar al arrancar (`~/.xinitrc` y autostart de awesome). Si algo
+  falla, ejecuta `~/.local/bin/wallpaper-apply`.
+
+### Flatpak
+
+- **Flatpak** instalado con el repositorio **Flathub**:
+  ```bash
+  flatpak search programa
+  flatpak install flathub org.ejemplo.App
+  flatpak update
+  ```
+- Las aplicaciones instaladas con Flatpak aparecen solas en rofi
+  (`Mod4 + d`) gracias a los `.desktop` exportados.
+
+### neofetch
+
+- `neofetch` está instalado en `/usr/local/bin/neofetch` (el paquete ya no
+  está en los repos oficiales de Arch).
+- Configuración compacta en `~/.config/neofetch/config.conf`; también
+  puedes usar el alias `fetch`.
+
 
 ## 5. Rendimiento
 

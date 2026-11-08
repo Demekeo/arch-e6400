@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Gestor de fondos: elige una imagen con rofi y la aplica con feh.
+# Uso:
+#   wallpaper-menu           -> abre el selector
+#   wallpaper-menu random    -> elige una al azar
+#   wallpaper-menu apply X   -> aplica X directamente
+
+set -euo pipefail
+
+confdir="${XDG_CONFIG_HOME:-$HOME/.config}/awesome"
+conf="$confdir/wallpaper.conf"
+dirs=("$confdir/wallpapers" "$HOME/Pictures/Wallpapers")
+
+apply() {
+    local img="$1"
+    [ -r "$img" ] || return 1
+    feh --no-fehbg --bg-fill "$img"
+    mkdir -p "$confdir"
+    printf '%s\n' "$img" > "$conf"
+}
+
+mkdir -p "${dirs[@]}"
+
+if [ "${1:-}" = "apply" ] && [ -n "${2:-}" ]; then
+    apply "$2"
+    exit $?
+fi
+
+mapfile -t files < <(
+    find "${dirs[@]}" -maxdepth 1 -type f \
+        \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+        2>/dev/null | sort
+)
+
+if [ ${#files[@]} -eq 0 ]; then
+    notify-send "Fondos" "No hay imagenes en ${dirs[*]}" 2>/dev/null || true
+    exit 1
+fi
+
+if [ "${1:-}" = "random" ]; then
+    apply "${files[RANDOM % ${#files[@]}]}"
+    exit 0
+fi
+
+names=()
+for f in "${files[@]}"; do
+    names+=("$(basename "$f")")
+done
+
+sel=$(printf '%s\n' "${names[@]}" |
+    rofi -dmenu -i -p "Fondo de pantalla" -no-custom) || exit 0
+
+[ -z "$sel" ] && exit 0
+
+for f in "${files[@]}"; do
+    if [ "$(basename "$f")" = "$sel" ]; then
+        apply "$f"
+        exit 0
+    fi
+done
