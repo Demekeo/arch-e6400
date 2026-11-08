@@ -59,6 +59,9 @@ echo ">> Flatpak + Flathub..."
 if command -v flatpak >/dev/null 2>&1; then
   sudo flatpak remote-add --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo || true
+  # Remoto de usuario: las apps --user se guardan en /home, no en los 32 GB de /.
+  flatpak remote-add --user --if-not-exists flathub \
+    https://flathub.org/repo/flathub.flatpakrepo || true
 fi
 
 echo ">> neofetch..."

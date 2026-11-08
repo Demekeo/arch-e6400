@@ -132,8 +132,8 @@ awesome -k
   - **Brillo**: rueda del ratón sube/baja 10 %; clic muestra el nivel.
   - **Batería**: clic muestra un aviso con nivel y estado de carga.
   - **RAM**: clic muestra el porcentaje en uso; clic derecho abre `htop`.
-  - **Disco**: clic muestra el espacio usado en `/`; clic derecho abre
-    Thunar en `/`.
+  - **Disco**: muestra el espacio libre de `/home`; clic muestra el uso
+    de `/` y `/home`; clic derecho abre Thunar en tu carpeta personal.
   - **Wifi**: clic abre `nmtui`; clic derecho muestra el nombre de la red.
   - **Layout** (icono de cuadrícula): clic cambia de layout.
   - **Iconos de ventanas**: clic enfoca o minimiza; clic central cierra;
@@ -178,12 +178,16 @@ awesome -k
 
 ### Flatpak
 
-- **Flatpak** instalado con el repositorio **Flathub**:
+- **Flatpak** instalado con el repositorio **Flathub**, tanto a nivel de
+  sistema como de usuario:
   ```bash
   flatpak search programa
-  flatpak install flathub org.ejemplo.App
+  flatpak --user install flathub org.ejemplo.App   # se guarda en /home
+  flatpak install flathub org.ejemplo.App          # a nivel de sistema
   flatpak update
   ```
+- En este equipo conviene `--user`: así las apps no llenan la partición
+  del sistema (32 GB) y se quedan en `/home` (260 GB).
 - Las aplicaciones instaladas con Flatpak aparecen solas en rofi
   (`Mod4 + d`) gracias a los `.desktop` exportados.
 
@@ -193,6 +197,23 @@ awesome -k
   está en los repos oficiales de Arch).
 - Configuración compacta en `~/.config/neofetch/config.conf`; también
   puedes usar el alias `fetch`.
+
+### Almacenamiento y particiones
+
+El disco del E6400 (Seagate ST9320325AS, 320 GB ≈ 298 GiB) está dividido
+en tres particiones:
+
+| Partición | Tamaño | Uso |
+|---|---|---|
+| `/dev/sda1` | 1 GB | `/boot` (arranque) |
+| `/dev/sda2` | 32 GB | `/` (sistema; ~23 GB libres) |
+| `/dev/sda3` | 260 GB | `/home` (datos; ~247 GB libres) |
+
+No falta disco: el sistema ocupa 32 GB y tus archivos viven en `/home`
+con 260 GB. La barra muestra el **espacio libre de `/home`**; al hacer
+clic enseña el detalle de ambas particiones. Si instalas muchas apps
+Flatpak, usa `flatpak --user install ...` para que se guarden en `/home`
+y no llenen la partición del sistema.
 
 
 ## 5. Rendimiento

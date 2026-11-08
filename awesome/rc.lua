@@ -514,8 +514,10 @@ ram:buttons(gears.table.join(
     awful.button({}, 3, function() awful.spawn(terminal .. " -e htop") end)
 ))
 
--- Disco: espacio usado en /.
-local disk_pct   = 0
+-- Disco: en la barra se muestra el espacio libre de /home (la particion
+-- grande). El aviso distingue el sistema (/) de los datos (/home).
+local root_used, root_size, root_pct = "?", "?", 0
+local home_used, home_size, home_avail, home_pct = "?", "?", "?", 0
 local disk_icon  = make_icon("\u{f1c0}", fg_dim)
 local disk_label = make_label("--")
 local disk = wibox.widget {
@@ -523,30 +525,42 @@ local disk = wibox.widget {
     spacing = 4,
     layout  = wibox.layout.fixed.horizontal,
 }
-add_tip(disk, "Disco /: clic para ver el uso · clic derecho: abrir en Thunar")
+add_tip(disk, "Home: espacio libre · clic: detalles de / y /home · clic derecho: Thunar")
 awful.widget.watch(
-    { "sh", "-c", [[df -h / | awk 'NR==2 {print $3, $5}']] },
+    { "sh", "-c", [[df -h / /home | awk 'NR>1 {print $6, $2, $3, $4, $5}']] },
     60,
     function(_, stdout)
-        local used, pct = stdout:match("(%S+)%s+(%d+)%%")
-        if not used then return end
-        disk_pct = tonumber(pct) or 0
-        disk_label.text = used
+        for mount, size, used, avail, pct in
+            stdout:gmatch("(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%d+)%%") do
+            if mount == "/" then
+                root_size, root_used, root_pct = size, used, tonumber(pct) or 0
+            elseif mount == "/home" then
+                home_size, home_used = size, used
+                home_avail, home_pct = avail, tonumber(pct) or 0
+            end
+        end
+        if home_avail == "?" then return end
+        -- Mostrar el espacio libre de /home (por ejemplo 247G).
+        disk_label.text = home_avail
         local color = fg_dim
-        if disk_pct >= 90 then color = red elseif disk_pct >= 75 then color = yellow end
-        colorize(disk_label, used, subtext1)
+        if home_pct >= 90 then color = red elseif home_pct >= 75 then color = yellow end
+        colorize(disk_label, home_avail, subtext1)
         disk_icon.markup = '<span foreground="' .. color .. '">\u{f1c0}</span>'
     end
 )
 disk:buttons(gears.table.join(
     awful.button({}, 1, function()
         naughty.notify({
-            title = "Disco /",
-            text  = "Usado: " .. disk_label.text .. " (" .. disk_pct .. "%)",
-            timeout = 4,
+            title = "Discos",
+            text  = "Sistema /: " .. root_used .. " de " .. root_size
+                .. " (" .. root_pct .. "%)\n"
+                .. "Home: " .. home_used .. " de " .. home_size
+                .. " (" .. home_pct .. "%)\n"
+                .. "Libre en Home: " .. home_avail,
+            timeout = 6,
         })
     end),
-    awful.button({}, 3, function() awful.spawn("thunar /") end)
+    awful.button({}, 3, function() awful.spawn("thunar") end)
 ))
 
 -- Red: SSID de la wifi activa o nombre de la conexion activa.
