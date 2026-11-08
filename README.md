@@ -85,15 +85,21 @@ awesome -k
 ## 4. Estética
 
 - Tema oscuro Tokyo Night (Storm) en la barra, tags y menús.
-- Barra superior de 34 px con: lanzador, tags en pastillas, lista de
-  ventanas, bandeja del sistema, volumen, batería, fecha/hora, layout y
-  apagado. Iconos en color (violeta, cian, verde, amarillo y rojo) en
-  vez de todo blanco, como en la referencia.
+- Barra superior de 34 px con: lanzador, 9 tags de colores, lista de
+  ventanas, bandeja del sistema, volumen, brillo, batería, RAM, disco,
+  wifi, fecha/hora, layout y apagado.
+- Cada tag tiene su propio color (rosa, naranja, amarillo, verde, teal,
+  cian, azul, violeta y gris): seleccionado en color pleno, ocupado en
+  tono tenue y vacío en tono muy tenue.
 - Interacción con la barra:
   - **Reloj**: clic abre el calendario; rueda cambia de mes.
   - **Volumen**: clic abre `pavucontrol`; rueda sube/baja 5 %; botón
     central silencia.
+  - **Brillo**: rueda del ratón sube/baja 10 %.
   - **Batería**: clic muestra un aviso con nivel y estado de carga.
+  - **RAM**: clic muestra el porcentaje de memoria en uso.
+  - **Disco**: clic muestra el espacio usado en `/` y su porcentaje.
+  - **Wifi**: clic abre `nmtui` para gestionar la red.
   - **Layout** (icono de cuadrícula): clic cambia de layout.
   - **Icono de apagado** (rojo, a la derecha): menú para cerrar sesión,
     reiniciar o apagar.

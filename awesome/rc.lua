@@ -50,6 +50,7 @@ local accent = "#7aa2f7"
 local red    = "#f7768e"
 local green  = "#9ece6a"
 local yellow = "#e0af68"
+local orange = "#ff9e64"
 local purple = "#bb9af7"
 local cyan   = "#7dcfff"
 
@@ -117,6 +118,58 @@ end
 beautiful.wallpaper = wallpaper
 -- }}}
 
+-- {{{ Colores por tag
+-- Mezcla dos colores hex (#rrggbb). t=1 -> c1, t=0 -> c2.
+local function blend(c1, c2, t)
+    local function rgb(c)
+        return tonumber(c:sub(2, 3), 16),
+               tonumber(c:sub(4, 5), 16),
+               tonumber(c:sub(6, 7), 16)
+    end
+    local r1, g1, b1 = rgb(c1)
+    local r2, g2, b2 = rgb(c2)
+    return string.format("#%02x%02x%02x",
+        math.floor(r1 * t + r2 * (1 - t)),
+        math.floor(g1 * t + g2 * (1 - t)),
+        math.floor(b1 * t + b2 * (1 - t)))
+end
+
+local tag_colors = {
+    "#f7768e", -- 1 rosa
+    "#ff9e64", -- 2 naranja
+    "#e0af68", -- 3 amarillo
+    "#9ece6a", -- 4 verde
+    "#73daca", -- 5 teal
+    "#7dcfff", -- 6 cian
+    "#7aa2f7", -- 7 azul
+    "#bb9af7", -- 8 violeta
+    "#c0caf5", -- 9 gris claro
+}
+
+-- Cada tag con su propio color: seleccionado = color pleno, ocupado = color
+-- tenue, vacio = color muy tenue. Parcheamos taglist_label para que reciba
+-- un "style" distinto segun el indice del tag.
+local taglist_module = require("awful.widget.taglist")
+local taglist_label_orig = taglist_module.taglist_label
+taglist_module.taglist_label = function(t, args)
+    local idx = tonumber(t.name) or t.index or 1
+    local c = tag_colors[((idx - 1) % #tag_colors) + 1]
+    local style = {}
+    if args then
+        for k, v in pairs(args) do style[k] = v end
+    end
+    style.bg_focus    = c
+    style.fg_focus    = bg
+    style.bg_occupied = blend(c, bg, 0.35)
+    style.fg_occupied = c
+    style.bg_empty    = blend(c, bg, 0.12)
+    style.fg_empty    = blend(c, bg, 0.55)
+    style.bg_urgent   = red
+    style.fg_urgent   = bg
+    return taglist_label_orig(t, style)
+end
+-- }}}
+
 -- {{{ Variables
 terminal   = "alacritty"
 editor     = os.getenv("EDITOR") or "nano"
@@ -172,23 +225,17 @@ local function make_label(text)
     return w
 end
 
-local function make_sep()
-    local w = wibox.widget.textbox()
-    w.font   = beautiful.font
-    w.markup = '<span foreground="' .. fg_dim .. '">│</span>'
-    return w
-end
-
 -- Lanzador: icono de Tux en violeta (clic = menu principal).
 local launcher = make_icon("\u{f17c}", purple)
 launcher:buttons(gears.table.join(
     awful.button({}, 1, function() mymainmenu:toggle() end)
 ))
 
--- Reloj: icono cian, fecha en gris y hora en negrita.
+-- Reloj: icono cian, fecha en gris y hora en verde y negrita.
 local clock = wibox.widget.textclock(
     '<span foreground="' .. cyan .. '">\u{f017}</span>  '
-    .. '<span foreground="' .. fg_dim .. '">%a %d %b</span>  <b>%H:%M</b> ',
+    .. '<span foreground="' .. fg_dim .. '">%a %d %b</span>  '
+    .. '<span foreground="' .. green .. '"><b>%H:%M</b></span> ',
     10
 )
 clock.font = beautiful.font
@@ -315,6 +362,126 @@ if bat_path then
     ))
 end
 
+-- Brillo: rueda del raton sube/baja 10 %.
+local bright_icon  = make_icon("\u{f185}", yellow)
+local bright_label = make_label("--%")
+local brightness = wibox.widget {
+    bright_icon, bright_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+awful.widget.watch(
+    { "sh", "-c", "brightnessctl -m 2>/dev/null | cut -d, -f4" },
+    5,
+    function(_, stdout)
+        local pct = tonumber(stdout:match("(%d+)%%"))
+        if not pct then
+            brightness.visible = false
+            return
+        end
+        brightness.visible = true
+        bright_label.text = pct .. "%"
+        local color = yellow
+        if pct < 30 then color = red end
+        bright_icon.markup = '<span foreground="' .. color .. '">\u{f185}</span>'
+    end
+)
+brightness:buttons(gears.table.join(
+    awful.button({}, 4, function() awful.spawn("brightnessctl set +10%") end),
+    awful.button({}, 5, function() awful.spawn("brightnessctl set 10%-") end)
+))
+
+-- RAM usada.
+local ram_pct   = 0
+local ram_icon  = make_icon("\u{f538}", purple)
+local ram_label = make_label("--%")
+local ram = wibox.widget {
+    ram_icon, ram_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+awful.widget.watch(
+    { "sh", "-c", [[free -m | awk '/^Mem:/ {printf "%d", $3/$2*100}']] },
+    5,
+    function(_, stdout)
+        local pct = tonumber(stdout)
+        if not pct then return end
+        ram_pct = pct
+        ram_label.text = pct .. "%"
+        local color = purple
+        if pct >= 85 then color = red elseif pct >= 70 then color = yellow end
+        ram_icon.markup = '<span foreground="' .. color .. '">\u{f538}</span>'
+    end
+)
+ram:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        naughty.notify({ title = "RAM", text = "Uso: " .. ram_pct .. "%", timeout = 4 })
+    end)
+))
+
+-- Disco: espacio usado en /.
+local disk_pct   = 0
+local disk_icon  = make_icon("\u{f0a0}", cyan)
+local disk_label = make_label("--")
+local disk = wibox.widget {
+    disk_icon, disk_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+awful.widget.watch(
+    { "sh", "-c", [[df -h / | awk 'NR==2 {print $3, $5}']] },
+    60,
+    function(_, stdout)
+        local used, pct = stdout:match("(%S+)%s+(%d+)%%")
+        if not used then return end
+        disk_pct = tonumber(pct) or 0
+        disk_label.text = used
+        local color = cyan
+        if disk_pct >= 90 then color = red elseif disk_pct >= 75 then color = yellow end
+        disk_icon.markup = '<span foreground="' .. color .. '">\u{f0a0}</span>'
+    end
+)
+disk:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        naughty.notify({
+            title = "Disco /",
+            text  = "Usado: " .. disk_label.text .. " (" .. disk_pct .. "%)",
+            timeout = 4,
+        })
+    end)
+))
+
+-- Red: SSID de la wifi activa o nombre de la conexion activa.
+local wifi_icon  = make_icon("\u{f1eb}", orange)
+local wifi_label = make_label("")
+local wifi = wibox.widget {
+    wifi_icon, wifi_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+wifi.visible = false
+awful.widget.watch(
+    { "sh", "-c", [[
+ssid=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}')
+[ -z "$ssid" ] && ssid=$(nmcli -t -f NAME connection show --active 2>/dev/null | head -n1)
+printf '%s' "$ssid"
+]] },
+    15,
+    function(_, stdout)
+        local name = stdout:gsub("%s+$", "")
+        if name == "" then
+            wifi.visible = false
+        else
+            if #name > 14 then name = name:sub(1, 13) .. "…" end
+            wifi.visible = true
+            wifi_label.text = name
+        end
+    end
+)
+wifi:buttons(gears.table.join(
+    awful.button({}, 1, function() awful.spawn(terminal .. " -e nmtui") end)
+))
+
 -- Menu de energia en la barra.
 local power_menu = awful.menu({
     items = {
@@ -420,15 +587,16 @@ awful.screen.connect_for_each_screen(function(s)
 
     local right = wibox.layout.fixed.horizontal()
     right.spacing = 8
-    right:add(tray)
-    right:add(make_sep())
     right:add(volume)
+    right:add(brightness)
     if battery then
         right:add(battery)
     end
-    right:add(make_sep())
+    right:add(ram)
+    right:add(disk)
+    right:add(wifi)
     right:add(clock)
-    right:add(make_sep())
+    right:add(tray)
     right:add(s.mylayoutbox)
     right:add(power)
     right = wibox.container.margin(right, 8, 8)
