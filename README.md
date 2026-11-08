@@ -235,6 +235,16 @@ awesome -k
   `XF86MonBrightnessUp`), usa el comando a mano o un atajo propio.
 - **Sin notificaciones**: awesome ya trae `naughty` con D-Bus; no instales
   `dunst` a la vez o se pelearán por el bus.
+- **El fondo no se ve (queda negro)**: comprueba que `feh` está instalado
+  (`pacman -Q feh`), que existe `~/.config/awesome/wallpaper.png` y ejecuta
+  a mano:
+  ```bash
+  ~/.local/bin/wallpaper-apply
+  feh --bg-fill ~/.config/awesome/wallpaper.png
+  ```
+  Si eso funciona pero al arrancar no, revisa que `~/.xinitrc` sea el que
+  usa `startx`. Si `wallpaper.conf` apunta a una ruta antigua, bórralo o
+  elige otro fondo con `Mod4 + Shift + W`.
 
 ## 7. Extra para el E6400
 

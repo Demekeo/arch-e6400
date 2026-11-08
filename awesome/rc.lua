@@ -621,12 +621,27 @@ local tasklist_buttons = gears.table.join(
     awful.button({}, 5, function() awful.client.focus.byidx(-1) end)
 )
 
--- Si cambia la resolucion (arandr), volver a aplicar el fondo con feh.
-screen.connect_signal("property::geometry", function()
-    awful.spawn.with_shell(
-        os.getenv("HOME") .. "/.local/bin/wallpaper-apply"
+-- Aplica el fondo con feh. Si el script no existe o feh falla, dibuja el
+-- PNG directamente con gears.wallpaper para no quedarnos en negro.
+local function gear_wallpaper()
+    local wp = gears.filesystem.get_configuration_dir() .. "wallpaper.png"
+    if not gears.filesystem.file_readable(wp) then return end
+    for s in screen do
+        gears.wallpaper.maximized(wp, s, true)
+    end
+end
+
+local function apply_wallpaper()
+    awful.spawn.easy_async_with_shell(
+        os.getenv("HOME") .. "/.local/bin/wallpaper-apply 2>/dev/null",
+        function(_, _, _, code)
+            if code ~= 0 then gear_wallpaper() end
+        end
     )
-end)
+end
+
+-- Si cambia la resolucion (arandr), volver a aplicar el fondo.
+screen.connect_signal("property::geometry", apply_wallpaper)
 
 awful.screen.connect_for_each_screen(function(s)
     awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
@@ -998,7 +1013,7 @@ client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_n
 
 -- {{{ Autostart
 -- Fondo de pantalla (feh) y compositor.
-awful.spawn.with_shell(os.getenv("HOME") .. "/.local/bin/wallpaper-apply 2>/dev/null")
+apply_wallpaper()
 -- "once" se resetea al recargar awesome; con pgrep evitamos duplicados.
 -- Si existe ~/.config/picom/off no se lanza el compositor (pantalla
 -- congelada en algunas GPUs viejas):  touch ~/.config/picom/off
