@@ -87,6 +87,15 @@ sudo systemctl start systemd-zram-setup@zram0.service 2>/dev/null || true
 
 xdg-user-dirs-update 2>/dev/null || true
 
+echo ">> Reiniciando picom con la config nueva..."
+pkill -x picom 2>/dev/null || true
+sleep 1
+if [ -n "${DISPLAY:-}" ]; then
+  nohup picom --config "$HOME/.config/picom/picom.conf" >/dev/null 2>&1 &
+else
+  echo "   (sin DISPLAY: se lanzara al entrar con startx)"
+fi
+
 echo ">> Comprobando la sintaxis de la config de awesome..."
 if awesome -k; then
   echo "   Config OK."
