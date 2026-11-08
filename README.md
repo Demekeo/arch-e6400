@@ -84,9 +84,11 @@ awesome -k
 
 ## 4. Estética
 
-- Tema oscuro Tokyo Night en la barra, tags y menús.
-- Barra superior de 32 px con: lanzador, tags en pastillas, lista de
-  ventanas, bandeja del sistema, volumen, batería, fecha/hora y layout.
+- Tema oscuro Tokyo Night (Storm) en la barra, tags y menús.
+- Barra superior de 34 px con: lanzador, tags en pastillas, lista de
+  ventanas, bandeja del sistema, volumen, batería, fecha/hora, layout y
+  apagado. Iconos en color (violeta, cian, verde, amarillo y rojo) en
+  vez de todo blanco, como en la referencia.
 - Interacción con la barra:
   - **Reloj**: clic abre el calendario; rueda cambia de mes.
   - **Volumen**: clic abre `pavucontrol`; rueda sube/baja 5 %; botón
@@ -100,8 +102,10 @@ awesome -k
   iconos, comprueba con `fc-match "Symbols Nerd Font"`.
 - Bordes de 2 px y gaps de 6 px.
 - Esquinas redondeadas y sombras vía picom (sin blur).
-- Fondo: `/usr/share/backgrounds/archlinux/awesome.png`
-  (paquete `archlinux-wallpaper`).
+- Fondo: `awesome/wallpaper.png` (degradado azul oscuro con un brillo
+  teal suave, a juego con la barra). Se instala en
+  `~/.config/awesome/wallpaper.png`. Si falta, se usa el fondo de
+  `archlinux-wallpaper`.
 - Iconos Papirus y tema GTK `Orchis-Dark`: se aplican solos gracias a
   `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
   y `~/.gtkrc-2.0`. Para cambiarlo a mano, usa `lxappearance`.

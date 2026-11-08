@@ -68,6 +68,7 @@ install_file() {
 }
 
 install_file awesome/rc.lua            "$HOME/.config/awesome/rc.lua"
+install_file awesome/wallpaper.png     "$HOME/.config/awesome/wallpaper.png"
 install_file picom/picom.conf          "$HOME/.config/picom/picom.conf"
 install_file rofi/config.rasi          "$HOME/.config/rofi/config.rasi"
 install_file alacritty/alacritty.toml  "$HOME/.config/alacritty/alacritty.toml"

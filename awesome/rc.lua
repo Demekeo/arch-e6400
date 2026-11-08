@@ -41,8 +41,9 @@ end
 -- {{{ Tema
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 
-local bg     = "#16161e"
-local bg_alt = "#1f2335"
+local bg     = "#24283b"  -- Tokyo Night Storm: barra
+local bg_alt = "#1f2335"  -- menus/notificaciones
+local bg_hl  = "#292e42"  -- tags ocupados / resaltados
 local fg     = "#c0caf5"
 local fg_dim = "#565f89"
 local accent = "#7aa2f7"
@@ -50,6 +51,7 @@ local red    = "#f7768e"
 local green  = "#9ece6a"
 local yellow = "#e0af68"
 local purple = "#bb9af7"
+local cyan   = "#7dcfff"
 
 beautiful.font          = "Inter 10"
 beautiful.taglist_font  = "Inter Bold 10"
@@ -64,7 +66,7 @@ beautiful.taglist_shape = gears.shape.rounded_rect
 beautiful.taglist_shape_border_width = 0
 beautiful.taglist_bg_focus    = accent
 beautiful.taglist_fg_focus    = bg
-beautiful.taglist_bg_occupied = bg_alt
+beautiful.taglist_bg_occupied = bg_hl
 beautiful.taglist_fg_occupied = fg
 beautiful.taglist_bg_empty    = bg
 beautiful.taglist_fg_empty    = fg_dim
@@ -102,9 +104,13 @@ beautiful.notification_opacity      = 0.96
 
 beautiful.wibar_bg     = bg
 beautiful.wibar_fg     = fg
-beautiful.wibar_height = 32
+beautiful.wibar_height = 34
 
-local wallpaper = "/usr/share/backgrounds/archlinux/awesome.png"
+-- Fondo oscuro azulado a juego con la barra (se instala con el repo).
+local wallpaper = gears.filesystem.get_configuration_dir() .. "wallpaper.png"
+if not gears.filesystem.file_readable(wallpaper) then
+    wallpaper = "/usr/share/backgrounds/archlinux/awesome.png"
+end
 if not gears.filesystem.file_readable(wallpaper) then
     wallpaper = gears.filesystem.get_themes_dir() .. "default/background.png"
 end
@@ -145,7 +151,6 @@ mymainmenu = awful.menu({
     },
 })
 
-mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon, menu = mymainmenu })
 menubar.utils.terminal = terminal
 -- }}}
 
@@ -174,8 +179,18 @@ local function make_sep()
     return w
 end
 
--- Reloj: fecha en pequeño y hora en negrita (textclock acepta markup).
-local clock = wibox.widget.textclock(" %a %d %b  <b>%H:%M</b> ", 10)
+-- Lanzador: icono de Tux en violeta (clic = menu principal).
+local launcher = make_icon("\u{f17c}", purple)
+launcher:buttons(gears.table.join(
+    awful.button({}, 1, function() mymainmenu:toggle() end)
+))
+
+-- Reloj: icono cian, fecha en gris y hora en negrita.
+local clock = wibox.widget.textclock(
+    '<span foreground="' .. cyan .. '">\u{f017}</span>  '
+    .. '<span foreground="' .. fg_dim .. '">%a %d %b</span>  <b>%H:%M</b> ',
+    10
+)
 clock.font = beautiful.font
 
 -- Calendario al hacer clic en el reloj (awesome 4.3).
@@ -200,7 +215,7 @@ if has_calendar then
 end
 
 -- Volumen: clic = pavucontrol, boton central = silenciar, rueda = +/- 5%.
-local vol_icon  = make_icon("\u{f028}", accent)
+local vol_icon  = make_icon("\u{f028}", green)
 local vol_label = make_label("--%")
 local volume = wibox.widget {
     vol_icon, vol_label,
@@ -221,9 +236,9 @@ awful.widget.watch(
         if muted or vol == 0 then
             glyph, color = "\u{f026}", red
         elseif vol < 50 then
-            glyph, color = "\u{f027}", fg
+            glyph, color = "\u{f027}", green
         else
-            glyph, color = "\u{f028}", accent
+            glyph, color = "\u{f028}", green
         end
         vol_icon.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
     end
@@ -249,7 +264,7 @@ end
 
 local battery
 if bat_path then
-    local bat_icon  = make_icon("\u{f244}", fg)
+    local bat_icon  = make_icon("\u{f244}", yellow)
     local bat_label = make_label("--%")
     local bat_cap, bat_status = "?", "Desconocido"
 
@@ -275,11 +290,11 @@ if bat_path then
             if charging then
                 glyph, color = "\u{f0e7}", green
             elseif cap >= 90 then
-                glyph, color = "\u{f240}", green
+                glyph, color = "\u{f240}", yellow
             elseif cap >= 70 then
-                glyph, color = "\u{f241}", fg
+                glyph, color = "\u{f241}", yellow
             elseif cap >= 45 then
-                glyph, color = "\u{f242}", fg
+                glyph, color = "\u{f242}", yellow
             elseif cap >= 20 then
                 glyph, color = "\u{f243}", yellow
             else
@@ -398,7 +413,7 @@ awful.screen.connect_for_each_screen(function(s)
 
     local left = wibox.layout.fixed.horizontal()
     left.spacing = 6
-    left:add(mylauncher)
+    left:add(launcher)
     left:add(s.mytaglist)
     left:add(s.mypromptbox)
     left = wibox.container.margin(left, 8, 8)
