@@ -1,0 +1,67 @@
+configuration {
+    font: "Inter 10";
+    show-icons: true;
+    icon-theme: "Papirus-Dark";
+    drun-display-format: "{name}";
+    display-drun: "";
+    display-run: "";
+    display-window: "";
+}
+
+* {
+    bg: #16161e;
+    bg-alt: #1f2335;
+    fg: #c0caf5;
+    accent: #7aa2f7;
+    background-color: @bg;
+    text-color: @fg;
+    border-color: @accent;
+}
+
+window {
+    width: 40%;
+    border: 2px;
+    border-color: @accent;
+    border-radius: 10px;
+    background-color: @bg;
+    padding: 10px;
+}
+
+listview {
+    lines: 8;
+    columns: 1;
+    spacing: 4px;
+    background-color: transparent;
+}
+
+element {
+    padding: 8px;
+    border-radius: 6px;
+    background-color: transparent;
+}
+
+element selected {
+    background-color: @accent;
+    text-color: @bg;
+}
+
+element-icon {
+    size: 1.2em;
+}
+
+inputbar {
+    padding: 8px;
+    background-color: @bg-alt;
+    border-radius: 6px;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+    margin: 0 8px 0 0;
+}
+
+entry {
+    placeholder: "Buscar...";
+    text-color: @fg;
+}
