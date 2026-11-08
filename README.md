@@ -85,6 +85,19 @@ awesome -k
 ## 4. Estética
 
 - Tema oscuro Tokyo Night en la barra, tags y menús.
+- Barra superior de 32 px con: lanzador, tags en pastillas, lista de
+  ventanas, bandeja del sistema, volumen, batería, fecha/hora y layout.
+- Interacción con la barra:
+  - **Reloj**: clic abre el calendario; rueda cambia de mes.
+  - **Volumen**: clic abre `pavucontrol`; rueda sube/baja 5 %; botón
+    central silencia.
+  - **Batería**: clic muestra un aviso con nivel y estado de carga.
+  - **Layout** (icono de cuadrícula): clic cambia de layout.
+  - **Icono de apagado** (rojo, a la derecha): menú para cerrar sesión,
+    reiniciar o apagar.
+- Los iconos usan `Symbols Nerd Font` (paquete `ttf-nerd-fonts-symbols`),
+  que incluye los glifos de Font Awesome. Si ves cuadrados en vez de
+  iconos, comprueba con `fc-match "Symbols Nerd Font"`.
 - Bordes de 2 px y gaps de 6 px.
 - Esquinas redondeadas y sombras vía picom (sin blur).
 - Fondo: `/usr/share/backgrounds/archlinux/awesome.png`

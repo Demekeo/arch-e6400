@@ -47,9 +47,12 @@ local fg     = "#c0caf5"
 local fg_dim = "#565f89"
 local accent = "#7aa2f7"
 local red    = "#f7768e"
+local green  = "#9ece6a"
+local yellow = "#e0af68"
 local purple = "#bb9af7"
 
 beautiful.font          = "Inter 10"
+beautiful.taglist_font  = "Inter Bold 10"
 beautiful.border_width  = 2
 beautiful.border_normal = bg_alt
 beautiful.border_focus  = accent
@@ -99,7 +102,7 @@ beautiful.notification_opacity      = 0.96
 
 beautiful.wibar_bg     = bg
 beautiful.wibar_fg     = fg
-beautiful.wibar_height = 30
+beautiful.wibar_height = 32
 
 local wallpaper = "/usr/share/backgrounds/archlinux/awesome.png"
 if not gears.filesystem.file_readable(wallpaper) then
@@ -147,23 +150,170 @@ menubar.utils.terminal = terminal
 -- }}}
 
 -- {{{ Widgets de la barra
-mytextclock = wibox.widget.textclock(" %H:%M ")
+-- "Symbols Nerd Font" (paquete ttf-nerd-fonts-symbols) incluye los glifos de
+-- Font Awesome en su codepoint original: no hace falta otra fuente.
+local icon_font = "Symbols Nerd Font 12"
 
-local battery = wibox.widget.textbox()
-local battery_path = "/sys/class/power_supply/BAT0/capacity"
-if gears.filesystem.file_readable(battery_path) then
-    awful.widget.watch("cat " .. battery_path, 15, function(widget, stdout)
-        widget:set_text(" BAT " .. (stdout:gsub("%s+", "")) .. "% ")
-    end)
-else
-    battery:set_text("")
+local function make_icon(glyph, color)
+    local w = wibox.widget.textbox()
+    w.font   = icon_font
+    w.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+    return w
 end
 
-local volume = wibox.widget.textbox()
-awful.widget.watch("pactl get-sink-volume @DEFAULT_SINK@", 2, function(widget, stdout)
-    local vol = stdout:match("(%d+)%%")
-    widget:set_text(" VOL " .. (vol or "?") .. "% ")
-end)
+local function make_label(text)
+    local w = wibox.widget.textbox(text)
+    w.font = beautiful.font
+    return w
+end
+
+local function make_sep()
+    local w = wibox.widget.textbox()
+    w.font   = beautiful.font
+    w.markup = '<span foreground="' .. fg_dim .. '">│</span>'
+    return w
+end
+
+-- Reloj: fecha en pequeño y hora en negrita (textclock acepta markup).
+local clock = wibox.widget.textclock(" %a %d %b  <b>%H:%M</b> ", 10)
+clock.font = beautiful.font
+
+-- Calendario al hacer clic en el reloj (awesome 4.3).
+local has_calendar, calendar_popup = pcall(require, "awful.widget.calendar_popup")
+if has_calendar then
+    local cal = calendar_popup.month({
+        font          = beautiful.font,
+        spacing       = 8,
+        week_numbers  = true,
+        start_sunday  = false,
+        long_weekdays = true,
+        margin        = 8,
+        bg            = bg_alt,
+        position      = "tr",
+        style_normal     = { fg_color = fg },
+        style_focus      = { fg_color = bg, bg_color = accent, shape = gears.shape.rounded_rect },
+        style_header     = { fg_color = accent },
+        style_weekday    = { fg_color = fg_dim },
+        style_weeknumber = { fg_color = fg_dim },
+    })
+    cal:attach(clock, "tr", { on_hover = false })
+end
+
+-- Volumen: clic = pavucontrol, boton central = silenciar, rueda = +/- 5%.
+local vol_icon  = make_icon("\u{f028}", accent)
+local vol_label = make_label("--%")
+local volume = wibox.widget {
+    vol_icon, vol_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+
+awful.widget.watch(
+    { "sh", "-c", "LC_ALL=C pactl get-sink-volume @DEFAULT_SINK@; "
+        .. "LC_ALL=C pactl get-sink-mute @DEFAULT_SINK@" },
+    3,
+    function(_, stdout)
+        local vol = tonumber(stdout:match("(%d+)%%"))
+        if not vol then return end
+        local muted = stdout:find("Mute: yes") ~= nil
+        vol_label.text = vol .. "%"
+        local glyph, color
+        if muted or vol == 0 then
+            glyph, color = "\u{f026}", red
+        elseif vol < 50 then
+            glyph, color = "\u{f027}", fg
+        else
+            glyph, color = "\u{f028}", accent
+        end
+        vol_icon.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+    end
+)
+
+volume:buttons(gears.table.join(
+    awful.button({}, 1, function() awful.spawn("pavucontrol") end),
+    awful.button({}, 2, function() awful.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle") end),
+    awful.button({}, 4, function() awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%") end),
+    awful.button({}, 5, function() awful.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%") end)
+))
+
+-- Bateria: busca BAT0/BAT1..., icono + % y detalles al hacer clic.
+local bat_path
+do
+    local f = io.popen("ls -d /sys/class/power_supply/BAT* 2>/dev/null")
+    if f then
+        local out = f:read("*a")
+        f:close()
+        bat_path = out:match("(/sys/class/power_supply/BAT%d+)")
+    end
+end
+
+local battery
+if bat_path then
+    local bat_icon  = make_icon("\u{f244}", fg)
+    local bat_label = make_label("--%")
+    local bat_cap, bat_status = "?", "Desconocido"
+
+    battery = wibox.widget {
+        bat_icon, bat_label,
+        spacing = 4,
+        layout  = wibox.layout.fixed.horizontal,
+    }
+
+    awful.widget.watch(
+        { "sh", "-c", "cat " .. bat_path .. "/capacity " .. bat_path .. "/status" },
+        20,
+        function(_, stdout)
+            local cap = tonumber(stdout:match("(%d+)"))
+            if not cap then return end
+            local charging = stdout:find("Charging") ~= nil
+            local full     = stdout:find("Full") ~= nil
+            bat_cap    = cap
+            bat_status = charging and "Cargando" or (full and "Llena" or "Descargando")
+            bat_label.text = cap .. "%"
+
+            local glyph, color
+            if charging then
+                glyph, color = "\u{f0e7}", green
+            elseif cap >= 90 then
+                glyph, color = "\u{f240}", green
+            elseif cap >= 70 then
+                glyph, color = "\u{f241}", fg
+            elseif cap >= 45 then
+                glyph, color = "\u{f242}", fg
+            elseif cap >= 20 then
+                glyph, color = "\u{f243}", yellow
+            else
+                glyph, color = "\u{f244}", red
+            end
+            bat_icon.markup = '<span foreground="' .. color .. '">' .. glyph .. "</span>"
+        end
+    )
+
+    battery:buttons(gears.table.join(
+        awful.button({}, 1, function()
+            naughty.notify({
+                title   = "Batería",
+                text    = "Nivel: " .. bat_cap .. "%\nEstado: " .. bat_status,
+                timeout = 5,
+            })
+        end)
+    ))
+end
+
+-- Menu de energia en la barra.
+local power_menu = awful.menu({
+    items = {
+        { "Cerrar sesión", function() awesome.quit() end },
+        { "Reiniciar", "systemctl reboot" },
+        { "Apagar", "systemctl poweroff" },
+    },
+    theme = { width = 170, height = 26 },
+})
+
+local power = make_icon("\u{f011}", red)
+power:buttons(gears.table.join(
+    awful.button({}, 1, function() power_menu:show() end)
+))
 -- }}}
 
 -- {{{ Barra
@@ -221,6 +371,20 @@ awful.screen.connect_for_each_screen(function(s)
         screen  = s,
         filter  = awful.widget.taglist.filter.all,
         buttons = taglist_buttons,
+        -- Pastillas con mas aire dentro (el template por defecto deja 4 px).
+        widget_template = {
+            {
+                {
+                    id     = "text_role",
+                    widget = wibox.widget.textbox,
+                },
+                left   = 8,
+                right  = 8,
+                widget = wibox.container.margin,
+            },
+            id     = "background_role",
+            widget = wibox.container.background,
+        },
     })
 
     s.mytasklist = awful.widget.tasklist({
@@ -228,6 +392,31 @@ awful.screen.connect_for_each_screen(function(s)
         filter  = awful.widget.tasklist.filter.currenttags,
         buttons = tasklist_buttons,
     })
+
+    local tray = wibox.widget.systray()
+    tray.base_size = 18
+
+    local left = wibox.layout.fixed.horizontal()
+    left.spacing = 6
+    left:add(mylauncher)
+    left:add(s.mytaglist)
+    left:add(s.mypromptbox)
+    left = wibox.container.margin(left, 8, 8)
+
+    local right = wibox.layout.fixed.horizontal()
+    right.spacing = 8
+    right:add(tray)
+    right:add(make_sep())
+    right:add(volume)
+    if battery then
+        right:add(battery)
+    end
+    right:add(make_sep())
+    right:add(clock)
+    right:add(make_sep())
+    right:add(s.mylayoutbox)
+    right:add(power)
+    right = wibox.container.margin(right, 8, 8)
 
     s.mywibox = awful.wibar({
         position = "top",
@@ -239,21 +428,9 @@ awful.screen.connect_for_each_screen(function(s)
 
     s.mywibox:setup({
         layout = wibox.layout.align.horizontal,
-        {
-            layout = wibox.layout.fixed.horizontal,
-            mylauncher,
-            s.mytaglist,
-            s.mypromptbox,
-        },
+        left,
         s.mytasklist,
-        {
-            layout = wibox.layout.fixed.horizontal,
-            wibox.widget.systray(),
-            battery,
-            volume,
-            mytextclock,
-            s.mylayoutbox,
-        },
+        right,
     })
 end)
 -- }}}
