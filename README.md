@@ -18,6 +18,7 @@ zsh/zshrc              -> ~/.zshrc (Oh My Zsh)
 zsh/p10k.zsh           -> ~/.p10k.zsh (Powerlevel10k)
 neofetch/neofetch       -> /usr/local/bin/neofetch
 neofetch/config.conf    -> ~/.config/neofetch/config.conf
+neofetch/ascii.txt      -> ~/.config/neofetch/ascii.txt
 gtk/settings.ini        -> ~/.config/gtk-3.0/settings.ini y gtk-4.0
 gtk/gtkrc-2.0           -> ~/.gtkrc-2.0
 xinitrc                 -> ~/.xinitrc
@@ -195,8 +196,13 @@ awesome -k
 
 - `neofetch` está instalado en `/usr/local/bin/neofetch` (el paquete ya no
   está en los repos oficiales de Arch).
-- Configuración compacta en `~/.config/neofetch/config.conf`; también
-  puedes usar el alias `fetch`.
+- Configuración en `~/.config/neofetch/config.conf` y logo propio en
+  `~/.config/neofetch/ascii.txt`.
+- Estilo **Catppuccin Macchiato**: logo Arch con degradado azul → malva →
+  rosa, etiquetas en azul, valores en blanco y bloques de color del tema.
+- Muestra sistema, núcleo, uptime, paquetes, shell, escritorio, pantalla,
+  terminal, CPU, GPU, memoria, ambos discos, batería y red.
+- También puedes usar el alias `fetch`.
 
 ### Almacenamiento y particiones
 
