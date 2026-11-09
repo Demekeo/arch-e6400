@@ -119,8 +119,9 @@ awesome -k
 - Tema **Catppuccin Macchiato** (`#24273a`) en la barra, tags, menús y
   notificaciones.
 - Barra superior de 35 px **translúcida** (`opacity = 0.82`) con esquinas
-  inferiores redondeadas y **desenfoque gaussiano** detrás: picom respeta
-  la transparencia. Si desactivas picom, la barra se ve opaca.
+  inferiores redondeadas: picom respeta la transparencia. Si desactivas
+  picom, la barra se ve opaca. **Sin blur**: en esta GPU el desenfoque por
+  `xrender` consume ~90 % de CPU en reposo (ver Rendimiento).
 - Distribución de la barra:
   - **Izquierda**: 8 lanzadores (Alacritty, Arch, editor, Thunar,
     Firefox, rofi, Flameshot y fondos), separador, 9 tags de colores,
@@ -156,7 +157,8 @@ awesome -k
   iconos, comprueba con `fc-match "Symbols Nerd Font"`.
 - Bordes de 2 px, gaps de 8 px y layout inicial `tile.left` (ventana
   principal a la derecha), igual que en la captura de referencia.
-- Esquinas redondeadas, sombras y blur gaussiano suave vía picom.
+- Esquinas redondeadas, sombras y transparencia vía picom (sin blur:
+  demasiado caro en esta GPU).
 - Iconos Papirus y tema GTK `Orchis-Dark`: se aplican solos gracias a
   `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
   y `~/.gtkrc-2.0`. Para cambiarlo a mano, usa `lxappearance`.
@@ -180,8 +182,8 @@ awesome -k
 - `eza` sustituye a `ls` con iconos, `bat` a `cat` con colores y `zoxide`
   añade `z carpeta` para saltar a directorios usados.
 - Alacritty usa fondo `#1e2030` (mantle), 88 % de opacidad, cursor de
-  bloque sin parpadeo y JetBrains Mono Nerd Font 10.5. El desenfoque de
-  picom se nota detrás de la terminal.
+  bloque sin parpadeo y JetBrains Mono Nerd Font 10.5. La transparencia
+  deja ver el fondo de pantalla a través de la terminal (sin blur).
 
 ### OpenCode remoto
 
@@ -361,15 +363,18 @@ archivos antiguos: `sudo rm -f /var/lib/systemd/coredump/*`.
 
 ## 5. Rendimiento
 
-- picom con `backend = "xrender"` y blur gaussiano (`blur-size = 9`): en la
-  G98M el backend `glx` congela la pantalla (solo se repinta al mover o
-  cambiar ventanas).
+- picom con `backend = "xrender"` y **sin blur**. En la G98M el backend
+  `glx` congela la pantalla (solo se repinta al mover o cambiar ventanas).
+- Medido en reposo: sin compositor Xorg ~3 %, con picom sin blur ~15 %,
+  con blur gaussiano o box ~80-90 % (incluso con `blur-size = 3`). Solo
+  blurrar la terminal costaba ~60 %, así que el blur queda desactivado.
+- No basta con `blur-background = false`: si quedan líneas `blur-*` en
+  `picom.conf`, esta versión sigue blurrando. Hay que quitarlas todas.
 - `vsync = false` y `unredir-if-possible = false` por el mismo motivo.
-- Si el blur va lento: baja `blur-size` a 6, pon `blur-background = false`
-  o desactiva sombras y esquinas (`shadow = false`, `corner-radius = 0`).
 - Si quieres el máximo rendimiento absoluto, desactiva el compositor:
-  `touch ~/.config/picom/off` y `Mod4 + Ctrl + r` (pierdes sombras y
-  esquinas redondeadas, ganas fluidez). Para volver: `rm ~/.config/picom/off`.
+  `touch ~/.config/picom/off` y `Mod4 + Ctrl + r` (pierdes sombras,
+  transparencia y esquinas redondeadas, ganas fluidez). Para volver:
+  `rm ~/.config/picom/off`.
 - No uses `LIBGL_ALWAYS_SOFTWARE`: en un Core 2 Duo es inusable.
 - Si cambias `picom.conf`, haz `pkill picom` y luego `Mod4 + Ctrl + r`
   para que awesome lo vuelva a lanzar.
