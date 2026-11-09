@@ -15,7 +15,7 @@ bin/opencode-web        -> ~/.local/bin/opencode-web (abre OpenCode remoto)
 bin/opencode-term       -> ~/.local/bin/opencode-term (TUI remota en Alacritty)
 applications/opencode-web.desktop -> ~/.local/share/applications/
 applications/opencode-term.desktop -> ~/.local/share/applications/
-xorg/20-modesetting.conf-> /etc/X11/xorg.conf.d/ (GLX acelerado, opt-in)
+xorg/20-modesetting.conf -> /etc/X11/xorg.conf.d/ (GLX acelerado, opt-in)
 ssh/setup-key.sh        -> autoriza la clave del PC de escritorio
 ssh/harden-sshd.sh      -> deja SSH solo con clave (pide sudo)
 picom/picom.conf        -> ~/.config/picom/picom.conf
@@ -348,6 +348,9 @@ sudo smartctl -a /dev/sda | grep -E 'SMART overall-health|Reallocated_Sector|Cur
 Si `SMART overall-health` no dice `PASSED`, haz copia de seguridad cuanto
 antes. Para un chequeo corto: `sudo smartctl -t short /dev/sda` y luego
 `sudo smartctl -l selftest /dev/sda`.
+
+Si `coredumpctl list` acumula muchos volcados (por ejemplo, de Flatseal),
+libera espacio con `sudo coredumpctl --vacuum-size=50M`.
 
 
 ## 5. Rendimiento
