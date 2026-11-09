@@ -351,6 +351,115 @@ if has_calendar then
     cal:attach(clock, "tr", { on_hover = false })
 end
 
+-- Reproductor multimedia (MPRIS): muestra artista - titulo en el centro de
+-- la barra. mpv se abre en modo pseudo-GUI (ventana con controles) y las
+-- pistas se arrastran a la ventana o se pega una URL con Ctrl+V.
+local media_player = "mpv --player-operation-mode=pseudo-gui --force-window=yes"
+local media_status = ""
+local media_icon   = make_icon("\u{f001}", fg_dim)
+local media_label  = make_label("")
+local media = wibox.widget {
+    media_icon, media_label,
+    spacing = 4,
+    layout  = wibox.layout.fixed.horizontal,
+}
+media.visible = false
+local media_tip = awful.tooltip({
+    objects             = { media },
+    text                = "Reproductor: clic play/pausa · rueda siguiente/anterior · clic derecho menú",
+    mode                = "outside",
+    preferred_positions = { "bottom" },
+})
+
+-- Envoltorio propio: el margen debe seguir visible aunque el reproductor
+-- este oculto; si no, la senal property::visible del layout no lo muestra.
+local media_bg = wibox.container.background(media)
+media_bg.bg    = transparent
+media_bg.shape = gears.shape.rounded_rect
+media_bg:connect_signal("mouse::enter", function() media_bg.bg = bg_hl end)
+media_bg:connect_signal("mouse::leave", function() media_bg.bg = transparent end)
+local media_box = wibox.container.margin(media_bg, 4, 4, 4, 4)
+
+local function media_escape(text)
+    return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+end
+
+local function media_truncate(text, max_chars)
+    local len = utf8.len(text)
+    if not len or len <= max_chars then return text end
+    return text:sub(1, utf8.offset(text, max_chars) - 1) .. "\u{2026}"
+end
+
+local function media_refresh(text)
+    local line = (text or ""):match("^[^\n]*") or ""
+    local status, artist, title = line:match("^([^|]*)|([^|]*)|(.*)$")
+    media_status = status or ""
+
+    -- Sin reproductor: no ocupar la barra. El tooltip se oculta a mano:
+    -- al desaparecer el widget no se emite mouse::leave y quedaria flotando.
+    if media_status == "" then
+        media.visible = false
+        media_tip.visible = false
+        return
+    end
+
+    local has_meta = (artist and artist ~= "") or (title and title ~= "")
+    if not has_meta and media_status == "Stopped" then
+        media.visible = false
+        media_tip.visible = false
+        return
+    end
+
+    local label
+    if not has_meta then
+        label = (media_status == "Playing") and "Reproduciendo" or "En pausa"
+    elseif artist and artist ~= "" and title and title ~= "" then
+        label = artist .. " - " .. title
+    elseif title and title ~= "" then
+        label = title
+    else
+        label = artist
+    end
+
+    local playing = media_status == "Playing"
+    local color   = playing and green or fg_dim
+    media_tip.text = label .. "\nClic: play/pausa · rueda: siguiente/anterior"
+    media_icon.markup = '<span foreground="' .. color .. '">'
+        .. (playing and "\u{f04c}" or "\u{f04b}") .. "</span>"
+    media_label.markup = '<span foreground="' .. color .. '">'
+        .. media_escape(media_truncate(label, 24)) .. "</span>"
+    media.visible = true
+end
+
+awful.widget.watch(
+    { "sh", "-c", "playerctl metadata --format '{{status}}|{{artist}}|{{title}}' 2>/dev/null" },
+    2,
+    function(_, stdout) media_refresh(stdout) end
+)
+
+local media_menu = awful.menu({
+    items = {
+        { "Reproducir / pausa", "playerctl play-pause" },
+        { "Siguiente",          "playerctl next" },
+        { "Anterior",           "playerctl previous" },
+        { "Abrir mpv",          media_player },
+    },
+    theme = { width = 190, height = 26 },
+})
+
+media:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        if media_status == "" then
+            awful.spawn(media_player)
+        else
+            awful.spawn("playerctl play-pause")
+        end
+    end),
+    awful.button({}, 3, function() media_menu:toggle() end),
+    awful.button({}, 4, function() awful.spawn("playerctl next") end),
+    awful.button({}, 5, function() awful.spawn("playerctl previous") end)
+))
+
 -- Volumen: clic = pavucontrol, boton central/derecho = silenciar, rueda = +/-5%.
 local vol_pct   = 0
 local vol_icon  = make_icon("\u{f025}", fg)
@@ -761,12 +870,14 @@ awful.screen.connect_for_each_screen(function(s)
         opacity  = beautiful.wibar_opacity,
     })
 
-    local spacer = wibox.widget.textbox()
+    -- El reproductor va en el centro; se oculta solo si no hay nada cargado.
+    local media_center = wibox.container.place(media_box)
+    media_center.halign = "center"
 
     s.mywibox:setup({
         layout = wibox.layout.align.horizontal,
         left,
-        spacer,
+        media_center,
         right,
     })
 end)

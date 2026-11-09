@@ -126,7 +126,8 @@ awesome -k
   - **Izquierda**: 8 lanzadores (Alacritty, Arch, editor, Thunar,
     Firefox, rofi, Flameshot y fondos), separador, 9 tags de colores,
     iconos de las ventanas abiertas y el prompt de awesome.
-  - **Centro**: vacío, como en la referencia.
+  - **Centro**: reproductor MPRIS (artista y título); se oculta solo si no
+    hay nada abierto.
   - **Derecha**: volumen, brillo, batería, RAM, disco, wifi, fecha/hora,
     bandeja del sistema y layout.
 - Los botones de la barra se **resaltan al pasar el ratón** y muestran un
@@ -149,6 +150,9 @@ awesome -k
   - **Disco**: muestra el espacio libre de `/home`; clic muestra el uso
     de `/` y `/home`; clic derecho abre Thunar en tu carpeta personal.
   - **Wifi**: clic abre `nmtui`; clic derecho muestra el nombre de la red.
+  - **Reproductor** (centro): aparece solo cuando hay algo cargado. Clic
+    izquierdo reproduce/pausa; rueda cambia de pista y clic derecho abre
+    el menú (play/pausa, siguiente, anterior, abrir mpv).
   - **Layout** (icono de cuadrícula): clic cambia de layout.
   - **Iconos de ventanas**: clic enfoca o minimiza; clic central cierra;
     clic derecho abre la lista de ventanas; rueda cambia el foco.
@@ -184,6 +188,25 @@ awesome -k
 - Alacritty usa fondo `#1e2030` (mantle), 88 % de opacidad, cursor de
   bloque sin parpadeo y JetBrains Mono Nerd Font 10.5. La transparencia
   deja ver el fondo de pantalla a través de la terminal (sin blur).
+
+### Reproductor multimedia (mpv)
+
+- `install.sh` instala **mpv** (audio y vídeo) y **mpv-mpris**, que publica
+  el estado en MPRIS para que la barra y `playerctl` lo controlen.
+- El icono de música del centro muestra `artista - título` (recortado a
+  24 caracteres; el tooltip tiene el nombre completo) y el estado de
+  reproducción. Se oculta cuando no hay nada cargado.
+- **Clic izquierdo**: play/pausa. **Rueda**: siguiente/anterior.
+  **Clic derecho**: menú con las mismas acciones y **Abrir mpv**.
+- Para abrir mpv sin nada cargado, usa rofi (`Mod4 + d`, escribe `mpv`) o
+  abre un archivo desde Thunar con **Abrir con mpv**. El widget del centro
+  solo se muestra mientras hay un reproductor MPRIS activo.
+- Las teclas `Play`, `Next` y `Prev` del portátil controlan el reproductor.
+- Para reproducir, arrastra un archivo a la ventana de mpv, pega una URL
+  con `Ctrl+V` o abre el archivo desde Thunar con **Abrir con mpv**. El
+  repo no incluye archivos de audio ni vídeo.
+- Si usas Firefox o VLC, también aparecen en el widget mientras reproduzcan
+  (cualquier cliente MPRIS sirve).
 
 ### Color del panel
 

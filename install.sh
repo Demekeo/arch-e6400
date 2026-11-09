@@ -20,6 +20,7 @@ packages=(
   network-manager-applet
   polkit-gnome
   brightnessctl playerctl xorg-xset xdotool wmctrl arandr
+  mpv mpv-mpris
   maim flameshot
   archlinux-wallpaper
   firefox mesa-utils zram-generator
