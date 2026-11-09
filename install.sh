@@ -28,7 +28,7 @@ packages=(
   zsh zsh-autosuggestions zsh-syntax-highlighting zsh-completions
   eza bat zoxide htop
   flatpak xdg-desktop-portal-gtk
-  git curl wget
+  git curl wget python
 )
 
 # Si un paquete no existe o falla la red, NO abortamos: seguimos copiando
@@ -129,10 +129,14 @@ install_file neofetch/ascii.txt        "$HOME/.config/neofetch/ascii.txt"
 install_file wallpaper/wallpaper-apply "$HOME/.local/bin/wallpaper-apply"
 install_file wallpaper/wallpaper-menu  "$HOME/.local/bin/wallpaper-menu"
 install_file bin/opencode-web          "$HOME/.local/bin/opencode-web"
+install_file bin/opencode-term         "$HOME/.local/bin/opencode-term"
 install_file applications/opencode-web.desktop "$HOME/.local/share/applications/opencode-web.desktop"
+install_file applications/opencode-term.desktop "$HOME/.local/share/applications/opencode-term.desktop"
 sed -i "s|@HOME@|$HOME|g" "$HOME/.local/share/applications/opencode-web.desktop"
+sed -i "s|@HOME@|$HOME|g" "$HOME/.local/share/applications/opencode-term.desktop"
 chmod +x "$HOME/.xinitrc" "$HOME/.local/bin/wallpaper-apply" \
-  "$HOME/.local/bin/wallpaper-menu" "$HOME/.local/bin/opencode-web"
+  "$HOME/.local/bin/wallpaper-menu" "$HOME/.local/bin/opencode-web" \
+  "$HOME/.local/bin/opencode-term"
 
 echo ">> Copiando fondos de pantalla..."
 mkdir -p "$HOME/.config/awesome/wallpapers"

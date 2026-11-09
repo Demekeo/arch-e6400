@@ -12,7 +12,9 @@ wallpapers/*.png        -> ~/.config/awesome/wallpapers/ (gestor de fondos)
 wallpaper/wallpaper-menu-> ~/.local/bin/wallpaper-menu (rofi + feh)
 wallpaper/wallpaper-apply-> ~/.local/bin/wallpaper-apply
 bin/opencode-web        -> ~/.local/bin/opencode-web (abre OpenCode remoto)
+bin/opencode-term       -> ~/.local/bin/opencode-term (TUI remota en Alacritty)
 applications/opencode-web.desktop -> ~/.local/share/applications/
+applications/opencode-term.desktop -> ~/.local/share/applications/
 picom/picom.conf        -> ~/.config/picom/picom.conf
 rofi/config.rasi        -> ~/.config/rofi/config.rasi
 alacritty/alacritty.toml-> ~/.config/alacritty/alacritty.toml
@@ -182,30 +184,48 @@ El binario oficial de OpenCode **no puede ejecutarse en el E6400**: está
 compilado para x86-64 con SSE4.2 y el Core 2 Duo T9600 solo llega a
 SSE4.1. Al arrancarlo termina con `Illegal instruction`.
 
-La alternativa es dejar el servidor en el PC de escritorio (Windows) y usar su
-interfaz web desde el portátil a través de un túnel SSH inverso:
+El servidor se queda en el PC de escritorio (Windows) y el portátil llega a
+él por un túnel SSH inverso. Hay dos formas de usarlo:
+
+- **Navegador**: `opencode-web` (o el icono **OpenCode** en rofi) abre
+  Firefox en la interfaz web.
+- **Terminal**: `opencode-term` (o **OpenCode Terminal** en rofi) abre
+  Alacritty con la TUI oficial, sin navegador.
 
 ```
-PC de escritorio (Windows)                        Portátil (Arch)
+PC de escritorio (Windows)                         Portátil (Arch)
 opencode service start (127.0.0.1:28894)
-        |
-        +-- ssh -R 28895:127.0.0.1:28894 -->  127.0.0.1:28895
+   |
+   +-- ssh -R 28895:127.0.0.1:28894 --> 127.0.0.1:28895   (web)
+   |
+   +-- ssh -R 28896:127.0.0.1:7682 --> 127.0.0.1:28896   (TUI)
+                                              |
+                                    ttyd + ConPTY -> opencode
 ```
 
-- En el portátil, `opencode-web` (o el icono **OpenCode** en rofi,
-  `Mod4 + d`) abre Firefox en `http://127.0.0.1:28895/`.
-- Si la página se queda con filas de carga, recarga con `Ctrl + Shift + R`:
-  la primera carga puede coincidir con el túnel reconectándose.
-- El túnel escucha solo en `127.0.0.1` del portátil; no se expone a la red.
-- En Windows, el servidor y el túnel se levantan solos al iniciar sesión
-  mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
-- La primera vez hay que emparejar el navegador. En Windows ejecuta
-  `opencode pair --url http://127.0.0.1:28895` y abre el enlace en el
-  portátil. La cookie dura 30 días; si caduca, genera otro enlace con el
-  mismo comando.
-- El PC de escritorio debe estar encendido y en la misma red. Si `opencode-web`
-  avisa de que no hay conexión, comprueba en Windows que siguen vivos
-  `opencode service status` y el proceso `ssh`.
+Para la TUI, Windows ejecuta un `ttyd` portátil (sin instalación ni
+administrador) que crea un PTY con ConPTY y lanza OpenCode dentro. El
+cliente `opencode-term` del portátil habla el WebSocket de `ttyd` y conecta
+la terminal local con ese PTY. `ttyd` escucha solo en `127.0.0.1:7682` y el
+túnel solo publica `127.0.0.1:28896`, así que no se abre nada a la red.
+
+- La TUI comparte el servidor y las sesiones de la interfaz web: al abrir
+  `opencode-term` puedes continuar una sesión existente con **Switch
+  session** (`Ctrl + P`).
+- `ttyd` se descarga en `%USERPROFILE%\.opencode-remote\ttyd\` y se
+  arranca al iniciar sesión con `start-tunnel.cmd`. No requiere UAC.
+- En Windows, el servidor, `ttyd` y el túnel se levantan solos al iniciar
+  sesión mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
+- La primera vez hay que emparejar el navegador para la web. En Windows
+  ejecuta `opencode pair --url http://127.0.0.1:28895` y abre el enlace en
+  el portátil. La cookie dura 30 días. La TUI no necesita este paso:
+  usa `service.json` y el servicio local.
+- El PC de escritorio debe estar encendido y en la misma red. Si
+  `opencode-web` o `opencode-term` avisan de que no hay conexión,
+  comprueba en Windows que sigan vivos `opencode service status`, `ttyd.exe`
+  y el proceso `ssh`.
+- Al cerrar Alacritty se termina el proceso remoto de la TUI; las sesiones
+  quedan guardadas en el servidor.
 - La clave pública del PC está en `ssh/opencode-windows.pub`;
   `bash ssh/setup-key.sh` la autoriza en el portátil si hiciera falta.
 
@@ -330,8 +350,12 @@ y no llenen la partición del sistema.
 - **Flatseal no muestra ventana**: GTK4 no encuentra DRI3 en esta GPU.
   Aplica el ajuste `GSK_RENDERER=cairo` de la sección Flatpak.
 - **OpenCode termina con `Illegal instruction`**: el binario oficial
-  necesita SSE4.2 y el T9600 solo tiene SSE4.1. Usa la interfaz remota
-  con `opencode-web` (ver «OpenCode remoto»).
+  necesita SSE4.2 y el T9600 solo tiene SSE4.1. No lo ejecutes en el
+  portátil: usa `opencode-web` o `opencode-term` (ver «OpenCode remoto»).
+- **`opencode-term` no conecta**: comprueba el túnel con
+  `ss -ltn | grep 28896` y `curl -sI http://127.0.0.1:28896/`. Si no
+  responde, el túnel está caído; `opencode-web` te lo confirma. En Windows
+  revisa que `ttyd.exe` siga vivo y que el puerto 7682 esté en escucha.
 - **Sin notificaciones**: awesome ya trae `naughty` con D-Bus; no instales
   `dunst` a la vez o se pelearán por el bus.
 - **El fondo no se ve (queda negro)**: comprueba que `feh` está instalado

@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+"""Abre la TUI de OpenCode del PC de escritorio en esta terminal.
+
+El servidor de OpenCode vive en Windows. La TUI no puede ejecutarse en el
+portatil porque su binario necesita SSE4.2, asi que corre en Windows dentro de
+un PTY (ttyd) y llega hasta aqui por el tunel SSH inverso que escucha en
+127.0.0.1:28896.
+
+Este cliente habla el protocolo WebSocket de ttyd y conecta la terminal local
+con ese PTY remoto. No usa navegador ni dependencias externas: solo la
+biblioteca estandar de Python.
+"""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import os
+import socket
+import struct
+import sys
+import termios
+import threading
+import time
+import tty
+from urllib.parse import urlsplit
+
+DEFAULT_URL = "ws://127.0.0.1:28896/ws"
+WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+# Mensajes del protocolo de ttyd. El primer byte indica el tipo.
+INPUT = b"0"
+RESIZE = b"1"
+OUTPUT = b"0"
+TITLE = b"1"
+PREFERENCES = b"2"
+
+
+def error(msg: str) -> int:
+    print(f"opencode-term: {msg}", file=sys.stderr)
+    # Al lanzarse desde rofi la ventana se cierra al salir; deja leer el error.
+    if sys.stderr.isatty():
+        time.sleep(5)
+    return 1
+
+
+def terminal_size() -> tuple[int, int]:
+    try:
+        size = os.get_terminal_size(sys.stdout.fileno())
+        return max(1, size.columns), max(1, size.lines)
+    except OSError:
+        return 80, 24
+
+
+class WebSocket:
+    def __init__(self, sock: socket.socket, initial: bytes = b"") -> None:
+        self.sock = sock
+        self.lock = threading.Lock()
+        self.closed = False
+        self.buffer = bytearray(initial)
+
+    def _read_exact(self, n: int) -> bytes:
+        while len(self.buffer) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise ConnectionError("conexion cerrada")
+            self.buffer.extend(chunk)
+        data = bytes(self.buffer[:n])
+        del self.buffer[:n]
+        return data
+
+    def _send_frame(self, opcode: int, payload: bytes) -> None:
+        header = bytearray([0x80 | opcode])
+        n = len(payload)
+        if n < 126:
+            header.append(0x80 | n)
+        elif n < 65536:
+            header.append(0x80 | 126)
+            header += struct.pack("!H", n)
+        else:
+            header.append(0x80 | 127)
+            header += struct.pack("!Q", n)
+        mask = os.urandom(4)
+        header += mask
+        masked = bytearray(payload)
+        for i in range(n):
+            masked[i] ^= mask[i & 3]
+        with self.lock:
+            if self.closed:
+                return
+            self.sock.sendall(bytes(header) + bytes(masked))
+
+    def send_text(self, text: str) -> None:
+        self._send_frame(0x1, text.encode())
+
+    def send_binary(self, data: bytes) -> None:
+        self._send_frame(0x2, data)
+
+    def send_control(self, opcode: int, payload: bytes = b"") -> None:
+        self._send_frame(opcode, payload)
+
+    def close(self) -> None:
+        with self.lock:
+            if self.closed:
+                return
+            self.closed = True
+            try:
+                mask = os.urandom(4)
+                payload = struct.pack("!H", 1000)
+                masked = bytes(b ^ mask[i & 3] for i, b in enumerate(payload))
+                self.sock.sendall(bytes([0x88, 0x82]) + mask + masked)
+            except OSError:
+                pass
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+
+    def recv_frame(self) -> tuple[bool, int, bytes]:
+        b1, b2 = self._read_exact(2)
+        fin = bool(b1 & 0x80)
+        opcode = b1 & 0x0F
+        masked = bool(b2 & 0x80)
+        length = b2 & 0x7F
+        if length == 126:
+            length = struct.unpack("!H", self._read_exact(2))[0]
+        elif length == 127:
+            length = struct.unpack("!Q", self._read_exact(8))[0]
+        mask = self._read_exact(4) if masked else b""
+        payload = self._read_exact(length) if length else b""
+        if masked:
+            payload = bytes(b ^ mask[i & 3] for i, b in enumerate(payload))
+        return fin, opcode, payload
+
+
+def websocket_handshake(
+    sock: socket.socket, host: str, port: int, path: str
+) -> WebSocket:
+    key = base64.b64encode(os.urandom(16)).decode()
+    host_header = host if port == 80 else f"{host}:{port}"
+    request = (
+        f"GET {path} HTTP/1.1\r\n"
+        f"Host: {host_header}\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {key}\r\n"
+        "Sec-WebSocket-Version: 13\r\n"
+        "Sec-WebSocket-Protocol: tty\r\n"
+        "\r\n"
+    )
+    sock.sendall(request.encode("ascii"))
+
+    response = b""
+    while b"\r\n\r\n" not in response:
+        chunk = sock.recv(4096)
+        if not chunk:
+            raise ConnectionError("el servidor cerro la conexion")
+        response += chunk
+        if len(response) > 65536:
+            raise ConnectionError("respuesta demasiado grande")
+
+    head, _, rest = response.partition(b"\r\n\r\n")
+    lines = head.decode("latin-1").split("\r\n")
+    status = lines[0] if lines else ""
+    if " 101 " not in f" {status} ":
+        raise ConnectionError(status or "respuesta vacia")
+
+    headers: dict[str, str] = {}
+    for line in lines[1:]:
+        if ":" in line:
+            name, value = line.split(":", 1)
+            headers[name.strip().lower()] = value.strip()
+
+    expected = base64.b64encode(
+        hashlib.sha1((key + WS_GUID).encode("ascii")).digest()
+    ).decode()
+    if headers.get("sec-websocket-accept") != expected:
+        raise ConnectionError("Sec-WebSocket-Accept no coincide")
+
+    return WebSocket(sock, rest)
+
+
+def handle_message(message: bytes) -> None:
+    if not message:
+        return
+    if message[0:1] == OUTPUT:
+        out = sys.stdout.buffer
+        out.write(message[1:])
+        out.flush()
+    # TITLE y PREFERENCES son mensajes del cliente web; aqui no hacen falta.
+
+
+def receive_loop(ws: WebSocket, stop: threading.Event) -> None:
+    fragments = bytearray()
+    fragmented = False
+    while not stop.is_set():
+        fin, opcode, payload = ws.recv_frame()
+
+        if opcode == 0x8:  # close
+            ws.send_control(0x8, payload[:2])
+            return
+        if opcode == 0x9:  # ping
+            ws.send_control(0xA, payload)
+            continue
+        if opcode == 0xA:  # pong
+            continue
+
+        if opcode in (0x1, 0x2):
+            fragments = bytearray(payload)
+            if not fin:
+                fragmented = True
+                continue
+            message = bytes(fragments)
+            fragments.clear()
+            fragmented = False
+        elif opcode == 0x0:
+            if not fragmented:
+                continue
+            fragments.extend(payload)
+            if not fin:
+                continue
+            message = bytes(fragments)
+            fragments.clear()
+            fragmented = False
+        else:
+            continue
+
+        handle_message(message)
+
+
+def main() -> int:
+    url = os.environ.get("OPENCODE_TERM_URL", DEFAULT_URL)
+    try:
+        parts = urlsplit(url)
+        if parts.scheme != "ws":
+            raise ValueError("la URL debe empezar por ws://")
+        host = parts.hostname or "127.0.0.1"
+        port = parts.port or 80
+        path = parts.path or "/"
+        if parts.query:
+            path += "?" + parts.query
+    except ValueError as exc:
+        return error(f"URL no valida: {exc}")
+
+    try:
+        sock = socket.create_connection((host, port), timeout=5)
+    except OSError:
+        return error(
+            f"no puedo conectar con {host}:{port}. Comprueba que el PC de "
+            "escritorio este encendido y el tunel SSH activo."
+        )
+
+    sock.settimeout(None)
+    try:
+        ws = websocket_handshake(sock, host, port, path)
+    except (OSError, ConnectionError) as exc:
+        sock.close()
+        return error(f"fallo la conexion con el puente de terminal: {exc}")
+
+    try:
+        fd = sys.stdin.fileno()
+        old_attrs = termios.tcgetattr(fd)
+    except (termios.error, OSError) as exc:
+        ws.close()
+        return error(f"esto no es una terminal interactiva: {exc}")
+
+    stop = threading.Event()
+    cols, rows = terminal_size()
+
+    def reader() -> None:
+        try:
+            while not stop.is_set():
+                data = os.read(fd, 4096)
+                if not data:
+                    break
+                ws.send_binary(INPUT + data)
+        except (OSError, ValueError):
+            pass
+        finally:
+            stop.set()
+            ws.close()
+
+    def resizer() -> None:
+        nonlocal cols, rows
+        last = (cols, rows)
+        while not stop.wait(0.5):
+            current = terminal_size()
+            if current == last:
+                continue
+            last = current
+            cols, rows = current
+            try:
+                ws.send_binary(
+                    RESIZE
+                    + json.dumps({"columns": cols, "rows": rows}).encode("ascii")
+                )
+            except OSError:
+                return
+
+    try:
+        tty.setraw(fd)
+        ws.send_text(json.dumps({"columns": cols, "rows": rows}))
+        threading.Thread(target=reader, daemon=True).start()
+        threading.Thread(target=resizer, daemon=True).start()
+        receive_loop(ws, stop)
+    except (OSError, ConnectionError):
+        pass
+    finally:
+        stop.set()
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+        except (termios.error, OSError):
+            pass
+        ws.close()
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

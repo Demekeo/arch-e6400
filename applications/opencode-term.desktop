@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=OpenCode Terminal
+Comment=TUI de OpenCode en el PC de escritorio (Alacritty + SSH)
+Exec=alacritty -e @HOME@/.local/bin/opencode-term
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;
+Keywords=opencode;ia;ai;terminal;
+StartupNotify=true
