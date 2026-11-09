@@ -351,7 +351,8 @@ antes. Para un chequeo corto: `sudo smartctl -t short /dev/sda` y luego
 `sudo smartctl -l selftest /dev/sda`.
 
 Si `coredumpctl list` acumula muchos volcados (por ejemplo, de Flatseal),
-libera espacio con `sudo coredumpctl --vacuum-size=50M`.
+systemd 262 ya no tiene `--vacuum-size`. Libera espacio borrando los
+archivos antiguos: `sudo rm -f /var/lib/systemd/coredump/*`.
 
 
 ## 5. Rendimiento
