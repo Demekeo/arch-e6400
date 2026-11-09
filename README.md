@@ -221,6 +221,7 @@ túnel solo publica `127.0.0.1:28896`, así que no se abre nada a la red.
   se arranca al iniciar sesión con `start-tunnel.cmd`. No requiere UAC.
 - En Windows, el servidor, `ttyd` y el túnel se levantan solos al iniciar
   sesión mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
+  `run-ttyd.cmd` se queda en segundo plano y relanza `ttyd` si se cae.
 - La primera vez hay que emparejar el navegador para la web. En Windows
   ejecuta `opencode pair --url http://127.0.0.1:28895` y abre el enlace en
   el portátil. La cookie dura 30 días. La TUI no necesita este paso:
@@ -448,7 +449,8 @@ libera espacio con `sudo coredumpctl --vacuum-size=50M`.
 - **`opencode-term` no conecta**: comprueba el túnel con
   `ss -ltn | grep 28896` y `curl -sI http://127.0.0.1:28896/`. Si no
   responde, el túnel está caído; `opencode-web` te lo confirma. En Windows
-  revisa que `ttyd.exe` siga vivo y que el puerto 7682 esté en escucha.
+  revisa que `ttyd.exe` siga vivo y que el puerto 7682 esté en escucha;
+  `run-ttyd.cmd` lo relanza solo si se cae.
 - **Sin notificaciones**: awesome ya trae `naughty` con D-Bus; no instales
   `dunst` a la vez o se pelearán por el bus.
 - **El fondo no se ve (queda negro)**: comprueba que `feh` está instalado
