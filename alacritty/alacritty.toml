@@ -2,7 +2,8 @@
 
 [window]
 padding = { x = 12, y = 12 }
-opacity = 0.92
+# Algo mas translucida para que se note el desenfoque de picom.
+opacity = 0.88
 dynamic_title = true
 
 [font]
@@ -24,15 +25,15 @@ save_to_clipboard = true
 osc52 = "CopyPaste"
 
 [colors.primary]
-background = "#0d1a25"
-foreground = "#c0caf5"
+background = "#1e2030"
+foreground = "#cad3f5"
 
 [colors.cursor]
-text = "#0d1a25"
-cursor = "#7aa2f7"
+text = "#1e2030"
+cursor = "#8aadf4"
 
 [colors.normal]
-black = "#0d1a25"
+black = "#181926"
 red = "#ed8796"
 green = "#a6da95"
 yellow = "#eed49f"

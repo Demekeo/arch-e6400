@@ -109,11 +109,16 @@ beautiful.notification_border_width = 1
 beautiful.notification_shape        = gears.shape.rounded_rect
 beautiful.notification_opacity      = 0.96
 
-beautiful.wibar_bg      = bg
+beautiful.wibar_bg      = bg_alt
 beautiful.wibar_fg      = fg
 beautiful.wibar_height  = 35
--- Barra translucida: picom (xrender) respeta _NET_WM_WINDOW_OPACITY.
-beautiful.wibar_opacity = 0.90
+-- Barra translucida: picom (xrender) respeta _NET_WM_WINDOW_OPACITY
+-- y aplica desenfoque gaussiano detras.
+beautiful.wibar_opacity = 0.82
+-- Solo las esquinas inferiores: la barra queda pegada al borde superior.
+beautiful.wibar_shape = function(cr, width, height)
+    gears.shape.partially_rounded_rect(cr, width, height, false, false, true, true, 12)
+end
 
 -- El fondo lo gestiona ~/.local/bin/wallpaper-menu con feh y se aplica en
 -- ~/.xinitrc antes de arrancar awesome. No usamos gears.wallpaper.
@@ -751,7 +756,7 @@ awful.screen.connect_for_each_screen(function(s)
         position = "top",
         screen   = s,
         height   = beautiful.wibar_height,
-        bg       = bg,
+        bg       = beautiful.wibar_bg,
         fg       = fg,
         opacity  = beautiful.wibar_opacity,
     })

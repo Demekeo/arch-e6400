@@ -4,7 +4,7 @@
 
 confdir="${XDG_CONFIG_HOME:-$HOME/.config}/awesome"
 conf="$confdir/wallpaper.conf"
-default="$confdir/wallpaper.png"
+default="$confdir/wallpapers/anime-twilight.jpg"
 
 wp=""
 if [ -r "$conf" ]; then
@@ -13,6 +13,9 @@ fi
 
 if [ -z "$wp" ] || [ ! -r "$wp" ]; then
     wp="$default"
+fi
+if [ ! -r "$wp" ]; then
+    wp="$confdir/wallpaper.png"
 fi
 
 [ -r "$wp" ] || exit 0

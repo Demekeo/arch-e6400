@@ -161,10 +161,10 @@ chmod +x "$HOME/.xinitrc" "$HOME/.local/bin/wallpaper-apply" \
 
 echo ">> Copiando fondos de pantalla..."
 mkdir -p "$HOME/.config/awesome/wallpapers"
-cp -f wallpapers/*.png "$HOME/.config/awesome/wallpapers/"
+cp -f wallpapers/*.jpg "$HOME/.config/awesome/wallpapers/"
 cp -f awesome/wallpaper.png "$HOME/.config/awesome/wallpapers/macchiato-default.png"
 if [ ! -f "$HOME/.config/awesome/wallpaper.conf" ]; then
-  printf '%s\n' "$HOME/.config/awesome/wallpaper.png" \
+  printf '%s\n' "$HOME/.config/awesome/wallpapers/anime-twilight.jpg" \
     > "$HOME/.config/awesome/wallpaper.conf"
 fi
 

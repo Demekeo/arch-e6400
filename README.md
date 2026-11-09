@@ -8,7 +8,7 @@ Configuración pensada para: Core 2 Duo T9600, 4 GB RAM, Quadro NVS 160M
 ```
 awesome/rc.lua          -> ~/.config/awesome/rc.lua
 awesome/wallpaper.png   -> fondo por defecto
-wallpapers/*.png        -> ~/.config/awesome/wallpapers/ (gestor de fondos)
+wallpapers/*.jpg        -> ~/.config/awesome/wallpapers/ (gestor de fondos)
 wallpaper/wallpaper-menu-> ~/.local/bin/wallpaper-menu (rofi + feh)
 wallpaper/wallpaper-apply-> ~/.local/bin/wallpaper-apply
 bin/opencode-web        -> ~/.local/bin/opencode-web (abre OpenCode remoto)
@@ -118,8 +118,9 @@ awesome -k
 
 - Tema **Catppuccin Macchiato** (`#24273a`) en la barra, tags, menús y
   notificaciones.
-- Barra superior de 35 px **translúcida** (`opacity = 0.90`): picom
-  respeta la transparencia. Si desactivas picom, la barra se ve opaca.
+- Barra superior de 35 px **translúcida** (`opacity = 0.82`) con esquinas
+  inferiores redondeadas y **desenfoque gaussiano** detrás: picom respeta
+  la transparencia. Si desactivas picom, la barra se ve opaca.
 - Distribución de la barra:
   - **Izquierda**: 8 lanzadores (Alacritty, Arch, editor, Thunar,
     Firefox, rofi, Flameshot y fondos), separador, 9 tags de colores,
@@ -155,7 +156,7 @@ awesome -k
   iconos, comprueba con `fc-match "Symbols Nerd Font"`.
 - Bordes de 2 px, gaps de 8 px y layout inicial `tile.left` (ventana
   principal a la derecha), igual que en la captura de referencia.
-- Esquinas redondeadas y sombras vía picom (sin blur).
+- Esquinas redondeadas, sombras y blur gaussiano suave vía picom.
 - Iconos Papirus y tema GTK `Orchis-Dark`: se aplican solos gracias a
   `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
   y `~/.gtkrc-2.0`. Para cambiarlo a mano, usa `lxappearance`.
@@ -178,8 +179,9 @@ awesome -k
   `history-substring-search`, autosugerencias y resaltado de sintaxis.
 - `eza` sustituye a `ls` con iconos, `bat` a `cat` con colores y `zoxide`
   añade `z carpeta` para saltar a directorios usados.
-- Alacritty usa fondo `#0d1a25`, 92 % de opacidad, cursor de bloque sin
-  parpadeo y JetBrains Mono Nerd Font 10.5.
+- Alacritty usa fondo `#1e2030` (mantle), 88 % de opacidad, cursor de
+  bloque sin parpadeo y JetBrains Mono Nerd Font 10.5. El desenfoque de
+  picom se nota detrás de la terminal.
 
 ### OpenCode remoto
 
@@ -263,8 +265,10 @@ Si algo falla, entra por la consola local, borra ese archivo y ejecuta
   de la barra, o `Mod4 + Shift + W`) muestra todos los fondos y aplica el
   elegido al instante.
 - `wallpaper-menu random` elige uno al azar.
-- Se incluyen 5 fondos Catppuccin en `~/.config/awesome/wallpapers/`
-  (azul, aurora, malva, bosque y atardecer). Puedes añadir los tuyos a
+- Se incluyen 7 fondos de estética anime **SFW** en
+  `~/.config/awesome/wallpapers/` (twilight, sky, sunset, castle, beach,
+  room y shrine). Los créditos y enlaces a los autores están en
+  `wallpapers/CREDITS.md`. Puedes añadir los tuyos a
   `~/Pictures/Wallpapers/`.
 - La elección se guarda en `~/.config/awesome/wallpaper.conf` y se vuelve
   a aplicar al arrancar (`~/.xinitrc` y autostart de awesome). Si algo
@@ -357,10 +361,12 @@ archivos antiguos: `sudo rm -f /var/lib/systemd/coredump/*`.
 
 ## 5. Rendimiento
 
-- picom con `backend = "xrender"` y sin blur: en la G98M el backend `glx`
-  congela la pantalla (solo se repinta al mover/cambiar ventanas).
+- picom con `backend = "xrender"` y blur gaussiano (`blur-size = 9`): en la
+  G98M el backend `glx` congela la pantalla (solo se repinta al mover o
+  cambiar ventanas).
 - `vsync = false` y `unredir-if-possible = false` por el mismo motivo.
-- Si va lento: `shadow = false` y `corner-radius = 0`.
+- Si el blur va lento: baja `blur-size` a 6, pon `blur-background = false`
+  o desactiva sombras y esquinas (`shadow = false`, `corner-radius = 0`).
 - Si quieres el máximo rendimiento absoluto, desactiva el compositor:
   `touch ~/.config/picom/off` y `Mod4 + Ctrl + r` (pierdes sombras y
   esquinas redondeadas, ganas fluidez). Para volver: `rm ~/.config/picom/off`.
