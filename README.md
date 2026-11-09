@@ -212,8 +212,10 @@ túnel solo publica `127.0.0.1:28896`, así que no se abre nada a la red.
 - La TUI comparte el servidor y las sesiones de la interfaz web: al abrir
   `opencode-term` puedes continuar una sesión existente con **Switch
   session** (`Ctrl + P`).
-- `ttyd` se descarga en `%USERPROFILE%\.opencode-remote\ttyd\` y se
-  arranca al iniciar sesión con `start-tunnel.cmd`. No requiere UAC.
+- `ttyd` es un binario portátil en
+  `%USERPROFILE%\.opencode-remote\ttyd\ttyd.exe` (si falta, descárgalo de
+  <https://github.com/tsl0922/ttyd/releases>, archivo `ttyd.win32.exe`) y
+  se arranca al iniciar sesión con `start-tunnel.cmd`. No requiere UAC.
 - En Windows, el servidor, `ttyd` y el túnel se levantan solos al iniciar
   sesión mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
 - La primera vez hay que emparejar el navegador para la web. En Windows
