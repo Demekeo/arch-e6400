@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Abre la interfaz web de OpenCode.
+#
+# El servidor corre en el PC de escritorio (Windows) y llega al portátil por un
+# túnel SSH inverso que escucha en 127.0.0.1:28895. El binario oficial de
+# OpenCode no puede ejecutarse en el T9600 porque necesita SSE4.2.
+set -u
+
+url="${OPENCODE_WEB_URL:-http://127.0.0.1:28895/}"
+
+if ! command -v firefox >/dev/null 2>&1; then
+  echo "Firefox no está instalado." >&2
+  exit 1
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl no está instalado." >&2
+  exit 1
+fi
+
+if ! curl -fsS --max-time 4 -o /dev/null "$url"; then
+  msg="No hay conexión con OpenCode en $url. Comprueba que el PC de escritorio esté encendido y el túnel activo."
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a OpenCode "OpenCode" "$msg"
+  fi
+  echo "$msg" >&2
+  exit 1
+fi
+
+exec firefox --new-tab "$url"

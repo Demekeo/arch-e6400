@@ -128,7 +128,10 @@ install_file neofetch/config.conf      "$HOME/.config/neofetch/config.conf"
 install_file neofetch/ascii.txt        "$HOME/.config/neofetch/ascii.txt"
 install_file wallpaper/wallpaper-apply "$HOME/.local/bin/wallpaper-apply"
 install_file wallpaper/wallpaper-menu  "$HOME/.local/bin/wallpaper-menu"
-chmod +x "$HOME/.xinitrc" "$HOME/.local/bin/wallpaper-apply" "$HOME/.local/bin/wallpaper-menu"
+install_file bin/opencode-web          "$HOME/.local/bin/opencode-web"
+install_file applications/opencode-web.desktop "$HOME/.local/share/applications/opencode-web.desktop"
+chmod +x "$HOME/.xinitrc" "$HOME/.local/bin/wallpaper-apply" \
+  "$HOME/.local/bin/wallpaper-menu" "$HOME/.local/bin/opencode-web"
 
 echo ">> Copiando fondos de pantalla..."
 mkdir -p "$HOME/.config/awesome/wallpapers"

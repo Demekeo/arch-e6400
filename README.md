@@ -11,6 +11,8 @@ awesome/wallpaper.png   -> fondo por defecto
 wallpapers/*.png        -> ~/.config/awesome/wallpapers/ (gestor de fondos)
 wallpaper/wallpaper-menu-> ~/.local/bin/wallpaper-menu (rofi + feh)
 wallpaper/wallpaper-apply-> ~/.local/bin/wallpaper-apply
+bin/opencode-web        -> ~/.local/bin/opencode-web (abre OpenCode remoto)
+applications/opencode-web.desktop -> ~/.local/share/applications/
 picom/picom.conf        -> ~/.config/picom/picom.conf
 rofi/config.rasi        -> ~/.config/rofi/config.rasi
 alacritty/alacritty.toml-> ~/.config/alacritty/alacritty.toml
@@ -174,6 +176,37 @@ awesome -k
 - Alacritty usa fondo `#0d1a25`, 92 % de opacidad, cursor de bloque sin
   parpadeo y JetBrains Mono Nerd Font 10.5.
 
+### OpenCode remoto
+
+El binario oficial de OpenCode **no puede ejecutarse en el E6400**: está
+compilado para x86-64 con SSE4.2 y el Core 2 Duo T9600 solo llega a
+SSE4.1. Al arrancarlo termina con `Illegal instruction`.
+
+La alternativa es dejar el servidor en el PC de escritorio (Windows) y usar su
+interfaz web desde el portátil a través de un túnel SSH inverso:
+
+```
+PC de escritorio (Windows)                        Portátil (Arch)
+opencode service start (127.0.0.1:28894)
+        |
+        +-- ssh -R 28895:127.0.0.1:28894 -->  127.0.0.1:28895
+```
+
+- En el portátil, `opencode-web` (o el icono **OpenCode** en rofi,
+  `Mod4 + d`) abre Firefox en `http://127.0.0.1:28895/`.
+- El túnel escucha solo en `127.0.0.1` del portátil; no se expone a la red.
+- En Windows, el servidor y el túnel se levantan solos al iniciar sesión
+  mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
+- La primera vez hay que emparejar el navegador. En Windows ejecuta
+  `opencode pair --url http://127.0.0.1:28895` y abre el enlace en el
+  portátil. La cookie dura 30 días; si caduca, genera otro enlace con el
+  mismo comando.
+- El PC de escritorio debe estar encendido y en la misma red. Si `opencode-web`
+  avisa de que no hay conexión, comprueba en Windows que siguen vivos
+  `opencode service status` y el proceso `ssh`.
+- La clave pública del PC está en `ssh/opencode-windows.pub`;
+  `bash ssh/setup-key.sh` la autoriza en el portátil si hiciera falta.
+
 ### Fondos de pantalla
 
 - Gestor propio con rofi + feh: `wallpaper-menu` (o el icono de imagen
@@ -294,6 +327,9 @@ y no llenen la partición del sistema.
   aparecer en `session-2.scope` (la sesión de X11, no la de SSH).
 - **Flatseal no muestra ventana**: GTK4 no encuentra DRI3 en esta GPU.
   Aplica el ajuste `GSK_RENDERER=cairo` de la sección Flatpak.
+- **OpenCode termina con `Illegal instruction`**: el binario oficial
+  necesita SSE4.2 y el T9600 solo tiene SSE4.1. Usa la interfaz remota
+  con `opencode-web` (ver «OpenCode remoto»).
 - **Sin notificaciones**: awesome ya trae `naughty` con D-Bus; no instales
   `dunst` a la vez o se pelearán por el bus.
 - **El fondo no se ve (queda negro)**: comprueba que `feh` está instalado
