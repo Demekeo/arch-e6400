@@ -185,6 +185,23 @@ awesome -k
   bloque sin parpadeo y JetBrains Mono Nerd Font 10.5. La transparencia
   deja ver el fondo de pantalla a través de la terminal (sin blur).
 
+### Color del panel
+
+El panel es un LG LP141WX5 (TN, 6 bits y gamut estrecho), así que los
+colores se ven menos saturados que en una pantalla moderna. `nouveau`
+expone el ajuste `color vibrance` (0-200; 150 = neutro, 200 = 2×).
+`~/.xinitrc` lo deja en **175 (1.5×)** al iniciar. Para cambiarlo en
+caliente:
+
+```sh
+xrandr --output LVDS-1 --set "color vibrance" 175
+xrandr --output LVDS-1 --set "vibrant hue" 90
+```
+
+El ajuste se aplica en el motor de color de la GPU: afecta al panel,
+pero **no a las capturas** (`maim` lee el framebuffer), así que una
+captura puede seguir viéndose distinta a la pantalla física.
+
 ### OpenCode remoto
 
 El binario oficial de OpenCode **no puede ejecutarse en el E6400**: está
