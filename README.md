@@ -338,6 +338,17 @@ clic enseña el detalle de ambas particiones. Si instalas muchas apps
 Flatpak, usa `flatpak --user install ...` para que se guarden en `/home`
 y no llenen la partición del sistema.
 
+`install.sh` también instala **`smartmontools`**. Para revisar la salud
+del HDD (requiere `sudo`):
+
+```bash
+sudo smartctl -a /dev/sda | grep -E 'SMART overall-health|Reallocated_Sector|Current_Pending|Temperature'
+```
+
+Si `SMART overall-health` no dice `PASSED`, haz copia de seguridad cuanto
+antes. Para un chequeo corto: `sudo smartctl -t short /dev/sda` y luego
+`sudo smartctl -l selftest /dev/sda`.
+
 
 ## 5. Rendimiento
 
