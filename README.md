@@ -164,6 +164,9 @@ awesome -k
 - **neofetch** se ejecuta al abrir cada terminal nueva (una vez por
   terminal). El instant prompt de p10k está desactivado para que la
   salida de neofetch no se borre al dibujar el prompt.
+- Si vuelves a ejecutar `p10k configure`, deja el **instant prompt en
+  `off`** (o borra el bloque que añada al principio de `~/.zshrc`); si no,
+  el prompt puede borrar la salida de neofetch.
 - Plugins: `git`, `sudo`, `extract`, `colored-man-pages`,
   `history-substring-search`, autosugerencias y resaltado de sintaxis.
 - `eza` sustituye a `ls` con iconos, `bat` a `cat` con colores y `zoxide`
