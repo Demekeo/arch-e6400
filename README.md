@@ -194,6 +194,8 @@ opencode service start (127.0.0.1:28894)
 
 - En el portátil, `opencode-web` (o el icono **OpenCode** en rofi,
   `Mod4 + d`) abre Firefox en `http://127.0.0.1:28895/`.
+- Si la página se queda con filas de carga, recarga con `Ctrl + Shift + R`:
+  la primera carga puede coincidir con el túnel reconectándose.
 - El túnel escucha solo en `127.0.0.1` del portátil; no se expone a la red.
 - En Windows, el servidor y el túnel se levantan solos al iniciar sesión
   mediante `%USERPROFILE%\.opencode-remote\start-tunnel.cmd`.
