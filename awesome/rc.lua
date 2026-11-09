@@ -1038,4 +1038,11 @@ if not gears.filesystem.file_readable(os.getenv("HOME") .. "/.config/picom/off")
     )
 end
 awful.spawn.with_shell("pgrep -x nm-applet >/dev/null || nm-applet")
+-- Agente de polkit: sin él, las apps gráficas no pueden pedir la
+-- contraseña de administrador (ArtCraft, GParted, Flatseal, etc.).
+awful.spawn.with_shell(
+    "test -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 && " ..
+    "{ pgrep -x polkit-gnome-au >/dev/null || " ..
+    "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1; }"
+)
 -- }}}

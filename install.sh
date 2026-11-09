@@ -18,6 +18,7 @@ packages=(
   noto-fonts noto-fonts-emoji
   lxappearance qt6ct kvantum
   network-manager-applet
+  polkit-gnome
   brightnessctl playerctl xorg-xset xdotool wmctrl arandr
   maim flameshot
   archlinux-wallpaper
@@ -62,6 +63,13 @@ if command -v flatpak >/dev/null 2>&1; then
   # Remoto de usuario: las apps --user se guardan en /home, no en los 32 GB de /.
   flatpak remote-add --user --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo || true
+  # Flatseal (GTK4) no dibuja la ventana en GPUs sin DRI3. Forzamos
+  # render por software solo para esa app si ya está instalada.
+  if flatpak list --app --columns=application 2>/dev/null |
+     grep -qx com.github.tchx84.Flatseal; then
+    flatpak override --user --env=GSK_RENDERER=cairo \
+      com.github.tchx84.Flatseal || true
+  fi
 fi
 
 echo ">> neofetch..."

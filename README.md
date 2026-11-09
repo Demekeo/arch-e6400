@@ -201,6 +201,23 @@ awesome -k
   del sistema (32 GB) y se quedan en `/home` (260 GB).
 - Las aplicaciones instaladas con Flatpak aparecen solas en rofi
   (`Mod4 + d`) gracias a los `.desktop` exportados.
+- **Flatseal** puede arrancar sin mostrar ventana en esta GPU (GTK4 y
+  DRI3). Fuerza el render por software solo para esa app:
+  ```bash
+  flatpak override --user --env=GSK_RENDERER=cairo com.github.tchx84.Flatseal
+  ```
+- **polkit-gnome** se instala con `install.sh` y awesome lo arranca al
+  entrar. Es el encargado de pedir la contraseña cuando una app gráfica
+  necesita permisos (instalar/actualizar paquetes, GParted, etc.).
+
+### ArtCraft
+
+- El launcher y sus apps vienen de un repositorio propio de ArtCraft, no
+  de los repos oficiales de Arch. La configuración está en
+  `/etc/pacman.d/artcraft.conf`.
+- El launcher se actualiza solo con el botón **Actualizar y reiniciar**;
+  las apps se instalan desde su interfaz. Ambas cosas usan `pkexec`, así
+  que necesitan el agente **polkit-gnome** en marcha.
 
 ### neofetch
 
@@ -271,6 +288,12 @@ y no llenen la partición del sistema.
   reglas) y te añade al grupo `video`; hace falta volver a entrar.
   Si las teclas Fn no generan evento X (`xev` no muestra
   `XF86MonBrightnessUp`), usa el comando a mano o un atajo propio.
+- **ArtCraft falla al instalar con error 127**: no hay agente de polkit
+  en la sesión gráfica. Instala `polkit-gnome`, reinicia awesome
+  (`Mod4 + Ctrl + r`) y comprueba con `pgrep -a polkit-gnome`: debe
+  aparecer en `session-2.scope` (la sesión de X11, no la de SSH).
+- **Flatseal no muestra ventana**: GTK4 no encuentra DRI3 en esta GPU.
+  Aplica el ajuste `GSK_RENDERER=cairo` de la sección Flatpak.
 - **Sin notificaciones**: awesome ya trae `naughty` con D-Bus; no instales
   `dunst` a la vez o se pelearán por el bus.
 - **El fondo no se ve (queda negro)**: comprueba que `feh` está instalado
