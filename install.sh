@@ -28,6 +28,7 @@ packages=(
   zsh zsh-autosuggestions zsh-syntax-highlighting zsh-completions
   eza bat zoxide htop
   flatpak xdg-desktop-portal-gtk
+  wireless-regdb lm_sensors smartmontools
   git curl wget python
 )
 
@@ -63,12 +64,32 @@ if command -v flatpak >/dev/null 2>&1; then
   # Remoto de usuario: las apps --user se guardan en /home, no en los 32 GB de /.
   flatpak remote-add --user --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo || true
-  # Flatseal (GTK4) no dibuja la ventana en GPUs sin DRI3. Forzamos
-  # render por software solo para esa app si ya está instalada.
+  # Flatseal (GTK4 + WebKitGTK) no dibuja la ventana en esta GPU. Forzamos
+  # render por software y desactivamos compositing/DMABUF solo para esa app.
   if flatpak list --app --columns=application 2>/dev/null |
      grep -qx com.github.tchx84.Flatseal; then
-    flatpak override --user --env=GSK_RENDERER=cairo \
+    flatpak override --user \
+      --env=GSK_RENDERER=cairo \
+      --env=WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+      --env=WEBKIT_DISABLE_DMABUF_RENDERER=1 \
       com.github.tchx84.Flatseal || true
+  fi
+fi
+
+echo ">> Driver X para la GPU NV98 (modesetting)..."
+# nouveau funciona por KMS/GBM, pero el driver X "nouveau" hace que GLX
+# caiga en llvmpipe. modesetting usa DRI3 + glamor y deja GLX acelerado.
+# No se activa por defecto para no arriesgar una pantalla negra: es opt-in.
+if [ -f xorg/20-modesetting.conf ]; then
+  if [ "${ARCH_E6400_MODESETTING:-0}" = "1" ]; then
+    sudo install -Dm644 xorg/20-modesetting.conf \
+      /etc/X11/xorg.conf.d/20-modesetting.conf
+    echo "   Instalado. Se aplicará al reiniciar X (cierra sesión o reinicia)."
+  else
+    echo "   No se activa por defecto. Para instalarlo:"
+    echo "     sudo install -Dm644 xorg/20-modesetting.conf \\"
+    echo "       /etc/X11/xorg.conf.d/20-modesetting.conf"
+    echo "   O vuelve a ejecutar: ARCH_E6400_MODESETTING=1 bash install.sh"
   fi
 fi
 

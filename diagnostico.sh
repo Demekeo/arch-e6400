@@ -25,6 +25,16 @@ else
   echo "lspci no instalado"
 fi
 lsmod 2>/dev/null | grep -E 'nouveau|nvidia' || echo "sin nouveau/nvidia en lsmod"
+if [ -f /etc/X11/xorg.conf.d/20-modesetting.conf ]; then
+  echo "modesetting: configurado"
+  grep -E 'Driver|AccelMethod|DRI' /etc/X11/xorg.conf.d/20-modesetting.conf
+else
+  echo "modesetting: NO configurado (GLX puede caer en llvmpipe)"
+fi
+if [ -r /var/log/Xorg.0.log ]; then
+  grep -E 'Loading .*(nouveau|modesetting)_drv|AIGLX|GLX: Initialized' \
+    /var/log/Xorg.0.log 2>/dev/null | tail -5
+fi
 
 echo
 echo "== Sesion =="
@@ -33,12 +43,28 @@ echo "LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE:-<no>}"
 loginctl 2>/dev/null | head -5
 
 echo
+echo "== SSH =="
+if grep -RhsE '^[[:space:]]*PasswordAuthentication' \
+     /etc/ssh/sshd_config /etc/ssh/sshd_config.d/ 2>/dev/null; then
+  :
+else
+  echo "PasswordAuthentication sin definir (por defecto: yes)"
+fi
+echo "claves autorizadas: $(wc -l < "$HOME/.ssh/authorized_keys" 2>/dev/null || echo 0)"
+
+echo
+echo "== WiFi / regulatory =="
+pacman -Q wireless-regdb 2>/dev/null || echo "FALTA wireless-regdb"
+ls -l /usr/lib/firmware/regulatory.db 2>/dev/null || echo "FALTA /usr/lib/firmware/regulatory.db"
+if have iw; then iw reg get 2>&1 | head -6; fi
+
+echo
 echo "== Paquetes =="
 for p in awesome picom rofi alacritty xorg-server xorg-xinit xterm feh \
          inter-font papirus-icon-theme orchis-theme ttf-jetbrains-mono-nerd \
          ttf-nerd-fonts-symbols noto-fonts-emoji archlinux-wallpaper \
          brightnessctl playerctl network-manager-applet pipewire-pulse \
-         mesa-utils; do
+         mesa-utils wireless-regdb lm_sensors smartmontools; do
   if pacman -Q "$p" >/dev/null 2>&1; then
     echo "OK    $p $(pacman -Q "$p" | awk '{print $2}')"
   else
@@ -101,6 +127,15 @@ else
 fi
 
 echo
+echo "== Flatseal =="
+if have flatpak; then
+  flatpak override --user --show com.github.tchx84.Flatseal 2>/dev/null ||
+    echo "Flatseal no instalado o sin override"
+else
+  echo "flatpak no instalado"
+fi
+
+echo
 echo "== Fuentes =="
 have fc-match && { fc-match "Inter" 2>&1; fc-match "JetBrainsMono Nerd Font" 2>&1; }
 if have fc-list; then
@@ -144,6 +179,27 @@ tail -n 60 "$HOME/.xsession-errors" 2>/dev/null || echo "no existe"
 echo
 echo "== journal (errores) =="
 journalctl -b -p err --no-pager 2>/dev/null | tail -25 || echo "sin journal"
+
+echo
+echo "== Temperaturas =="
+if have sensors; then
+  sensors 2>/dev/null | head -30
+else
+  echo "lm_sensors no instalado"
+fi
+for z in /sys/class/thermal/thermal_zone*/temp; do
+  [ -r "$z" ] || continue
+  printf '%s: %s C\n' \
+    "$(cat "${z%/temp}/type" 2>/dev/null)" "$(( $(cat "$z") / 1000 ))"
+done
+
+echo
+echo "== Coredumps =="
+if have coredumpctl; then
+  coredumpctl --no-pager list 2>/dev/null | tail -8 || true
+else
+  echo "coredumpctl no disponible"
+fi
 
 echo
 echo "== FIN =="

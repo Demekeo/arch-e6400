@@ -181,14 +181,36 @@ def websocket_handshake(
     return WebSocket(sock, rest)
 
 
+def set_title(raw: bytes) -> None:
+    """Cambia el titulo de la ventana sin permitir secuencias de control.
+
+    ttyd envia el titulo que OpenCode pone en el PTY. Si lo escribieramos
+    tal cual, un titulo con ESC o BEL podria inyectar comandos en la
+    terminal; nos quedamos solo con caracteres imprimibles.
+    """
+    text = raw.decode("utf-8", "replace")
+    text = "".join(ch for ch in text if ch.isprintable()).strip()
+    if not text:
+        return
+    try:
+        out = sys.stdout.buffer
+        out.write(f"\x1b]0;{text[:200]}\x07".encode("utf-8"))
+        out.flush()
+    except (OSError, ValueError):
+        pass
+
+
 def handle_message(message: bytes) -> None:
     if not message:
         return
-    if message[0:1] == OUTPUT:
+    kind = message[0:1]
+    if kind == OUTPUT:
         out = sys.stdout.buffer
         out.write(message[1:])
         out.flush()
-    # TITLE y PREFERENCES son mensajes del cliente web; aqui no hacen falta.
+    elif kind == TITLE:
+        set_title(message[1:])
+    # PREFERENCES es un mensaje del cliente web; aqui no hace falta.
 
 
 def receive_loop(ws: WebSocket, stop: threading.Event) -> None:

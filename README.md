@@ -15,6 +15,9 @@ bin/opencode-web        -> ~/.local/bin/opencode-web (abre OpenCode remoto)
 bin/opencode-term       -> ~/.local/bin/opencode-term (TUI remota en Alacritty)
 applications/opencode-web.desktop -> ~/.local/share/applications/
 applications/opencode-term.desktop -> ~/.local/share/applications/
+xorg/20-modesetting.conf-> /etc/X11/xorg.conf.d/ (GLX acelerado, opt-in)
+ssh/setup-key.sh        -> autoriza la clave del PC de escritorio
+ssh/harden-sshd.sh      -> deja SSH solo con clave (pide sudo)
 picom/picom.conf        -> ~/.config/picom/picom.conf
 rofi/config.rasi        -> ~/.config/rofi/config.rasi
 alacritty/alacritty.toml-> ~/.config/alacritty/alacritty.toml
@@ -231,6 +234,28 @@ túnel solo publica `127.0.0.1:28896`, así que no se abre nada a la red.
 - La clave pública del PC está en `ssh/opencode-windows.pub`;
   `bash ssh/setup-key.sh` la autoriza en el portátil si hiciera falta.
 
+### SSH solo con clave
+
+El túnel de OpenCode ya usa la clave, pero sshd sigue aceptando
+contraseña por defecto. Para cerrar esa puerta:
+
+```bash
+cd ~/arch-e6400
+bash ssh/setup-key.sh     # solo si la clave no estuviera autorizada
+bash ssh/harden-sshd.sh   # pide sudo, valida con sshd -t y recarga sshd
+```
+
+El script instala `/etc/ssh/sshd_config.d/100-key-only.conf` con
+`PasswordAuthentication no`. Antes de cerrar la sesión, comprueba desde
+Windows que el túnel sigue funcionando:
+
+```powershell
+ssh -i C:\Users\tichu\.ssh\arch_e6400 demekeo@192.168.0.111 true
+```
+
+Si algo falla, entra por la consola local, borra ese archivo y ejecuta
+`sudo systemctl reload sshd`.
+
 ### Fondos de pantalla
 
 - Gestor propio con rofi + feh: `wallpaper-menu` (o el icono de imagen
@@ -258,11 +283,18 @@ túnel solo publica `127.0.0.1:28896`, así que no se abre nada a la red.
   del sistema (32 GB) y se quedan en `/home` (260 GB).
 - Las aplicaciones instaladas con Flatpak aparecen solas en rofi
   (`Mod4 + d`) gracias a los `.desktop` exportados.
-- **Flatseal** puede arrancar sin mostrar ventana en esta GPU (GTK4 y
-  DRI3). Fuerza el render por software solo para esa app:
+- **Flatseal** puede arrancar sin mostrar ventana en esta GPU (GTK4,
+  WebKitGTK y DRI3). Fuerza el render por software solo para esa app:
   ```bash
-  flatpak override --user --env=GSK_RENDERER=cairo com.github.tchx84.Flatseal
+  flatpak override --user \
+    --env=GSK_RENDERER=cairo \
+    --env=WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+    --env=WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+    com.github.tchx84.Flatseal
   ```
+  En este equipo ya está aplicado. `install.sh` vuelve a ponerlo si
+  Flatseal está instalado. Comprueba con
+  `flatpak override --user --show com.github.tchx84.Flatseal`.
 - **polkit-gnome** se instala con `install.sh` y awesome lo arranca al
   entrar. Es el encargado de pedir la contraseña cuando una app gráfica
   necesita permisos (instalar/actualizar paquetes, GParted, etc.).
@@ -320,6 +352,41 @@ y no llenen la partición del sistema.
 - Si cambias `picom.conf`, haz `pkill picom` y luego `Mod4 + Ctrl + r`
   para que awesome lo vuelva a lanzar.
 
+### GLX y driver de X
+
+- El kernel usa `nouveau` y EGL/GBM funciona con la GPU NV98: `eglinfo -B`
+  muestra `NV98` y OpenGL 3.3. El problema es solo GLX: con el driver X
+  `nouveau`, `glxinfo -B` cae en `llvmpipe` y `Accelerated: no`.
+- El repo incluye `xorg/20-modesetting.conf`, que fuerza el driver
+  `modesetting` con glamor y DRI3. Para aplicarlo (requiere `sudo` y
+  reiniciar X):
+  ```bash
+  sudo install -Dm644 ~/arch-e6400/xorg/20-modesetting.conf \
+    /etc/X11/xorg.conf.d/20-modesetting.conf
+  # cierra sesión y vuelve a entrar, o si usas SDDM:
+  sudo systemctl restart sddm
+  glxinfo -B | grep -E 'renderer|Accelerated'
+  ```
+  Debe aparecer `NV98` y `Accelerated: yes`.
+- Si X no arranca con `modesetting`, vuelve atrás desde una TTY:
+  `sudo rm /etc/X11/xorg.conf.d/20-modesetting.conf` y reinicia.
+- `install.sh` no lo activa por defecto para no arriesgar una pantalla
+  negra. Para activarlo durante la instalación:
+  `ARCH_E6400_MODESETTING=1 bash install.sh`.
+
+### Temperatura y ventilador
+
+- En este E6400 el pico observado es de ~101 °C con throttling. No es un
+  problema del gobernador: `schedutil` y el perfil `balanced` son los
+  adecuados. Es un problema físico: ventilador sucio y pasta térmica seca.
+- Limpia el ventilador y el radiador, y cambia la pasta térmica (por
+  ejemplo Arctic MX-4). Mientras tanto, usa una base con ventilador y no
+  tapen las rejillas laterales/traseras.
+- Para vigilar: `sensors` (paquete `lm_sensors`), `watch -n 2 sensors` y
+  `journalctl -k | grep -i thermal`.
+- No fuerces el gobernador `performance`: en este CPU solo sube la
+  temperatura y el throttling empeora.
+
 ## 6. Problemas típicos
 
 - **Vuelve al rc.lua por defecto**: hay un error de sintaxis. Ejecuta
@@ -349,8 +416,18 @@ y no llenen la partición del sistema.
   en la sesión gráfica. Instala `polkit-gnome`, reinicia awesome
   (`Mod4 + Ctrl + r`) y comprueba con `pgrep -a polkit-gnome`: debe
   aparecer en `session-2.scope` (la sesión de X11, no la de SSH).
-- **Flatseal no muestra ventana**: GTK4 no encuentra DRI3 en esta GPU.
-  Aplica el ajuste `GSK_RENDERER=cairo` de la sección Flatpak.
+- **Flatseal no muestra ventana o se cierra**: GTK4/WebKitGTK no
+  encuentran DRI3 en esta GPU. Aplica los tres ajustes de la sección
+  Flatpak (`GSK_RENDERER`, `WEBKIT_DISABLE_COMPOSITING_MODE` y
+  `WEBKIT_DISABLE_DMABUF_RENDERER`). Si sigue fallando, revisa
+  `coredumpctl list | grep -i flatseal`.
+- **`glxinfo` dice `llvmpipe` / `Accelerated: no`**: es el driver X
+  `nouveau`. Instala `xorg/20-modesetting.conf` como se explica en
+  «GLX y driver de X» y reinicia X.
+- **SSH pide contraseña y quieres usar solo clave**: ejecuta
+  `bash ssh/harden-sshd.sh` (ver «SSH solo con clave»).
+- **El portátil se calienta y baja de frecuencia**: es el ventilador y la
+  pasta térmica, no el gobernador. Mira «Temperatura y ventilador».
 - **OpenCode termina con `Illegal instruction`**: el binario oficial
   necesita SSE4.2 y el T9600 solo tiene SSE4.1. No lo ejecutes en el
   portátil: usa `opencode-web` o `opencode-term` (ver «OpenCode remoto»).
@@ -385,6 +462,10 @@ este portátil.
 
 - **Intel WiFi Link 5100/5300** (`iwlwifi`): funciona directamente con
   NetworkManager (el icono de la barra es `nm-applet`).
+- Instala **`wireless-regdb`** (ya está en `install.sh`): proporciona
+  `/usr/lib/firmware/regulatory.db`, la base de datos de dominios
+  regulatorios. Sin ella, `iw reg get` avisa y algunos canales/países no
+  se configuran bien. Comprueba con `iw reg get`.
 - **Broadcom BCM4312** (`lspci -nn | grep -i net`): el driver libre `b43`
   necesita firmware. Si no aparece interfaz, mira
   `dmesg | grep -i -E 'b43|brcm|firmware'`. Las salidas habituales son
