@@ -93,6 +93,18 @@ install_file() {
   cp "$src" "$dst"
 }
 
+# Copia el archivo solo si no existe. Se usa para configuraciones que el
+# usuario personaliza (por ejemplo, el prompt de p10k) y no deben perderse
+# al actualizar el repositorio.
+install_file_keep() {
+  local src="$1" dst="$2"
+  if [ -f "$dst" ]; then
+    echo "   Conservando $dst (configuracion existente)"
+    return 0
+  fi
+  install_file "$src" "$dst"
+}
+
 install_file awesome/rc.lua            "$HOME/.config/awesome/rc.lua"
 install_file awesome/wallpaper.png     "$HOME/.config/awesome/wallpaper.png"
 install_file picom/picom.conf          "$HOME/.config/picom/picom.conf"
@@ -103,7 +115,7 @@ install_file gtk/settings.ini          "$HOME/.config/gtk-4.0/settings.ini"
 install_file gtk/gtkrc-2.0             "$HOME/.gtkrc-2.0"
 install_file xinitrc                   "$HOME/.xinitrc"
 install_file zsh/zshrc                 "$HOME/.zshrc"
-install_file zsh/p10k.zsh              "$HOME/.p10k.zsh"
+install_file_keep zsh/p10k.zsh         "$HOME/.p10k.zsh"
 install_file neofetch/config.conf      "$HOME/.config/neofetch/config.conf"
 install_file neofetch/ascii.txt        "$HOME/.config/neofetch/ascii.txt"
 install_file wallpaper/wallpaper-apply "$HOME/.local/bin/wallpaper-apply"

@@ -56,6 +56,10 @@ El script guarda una copia de las configs anteriores en
 pueda controlar el brillo, instala **Oh My Zsh + Powerlevel10k** (clona
 ambos de GitHub), pone **zsh** como shell por defecto e instala
 **neofetch**, **flatpak** con Flathub y el gestor de fondos.
+
+Si ya tienes `~/.p10k.zsh`, **no se sobrescribe**: se conserva tu
+configuración del prompt. Para volver a la versión del repo:
+`cp zsh/p10k.zsh ~/.p10k.zsh`.
 Si añade tu usuario al grupo `video`, cierra sesión y vuelve a entrar
 antes de usar las teclas de brillo (también es necesario para que zsh
 sea tu shell).
@@ -155,8 +159,11 @@ awesome -k
 - `install.sh` instala **zsh** y lo deja como shell por defecto, clona
   **Oh My Zsh** en `~/.oh-my-zsh` y **Powerlevel10k** en `~/.powerlevel10k`.
 - El prompt de p10k usa el logo de Arch, directorio, rama de git, estado,
-  batería y hora, con colores Macchiato.
+  batería y hora.
 - Para cambiar el estilo del prompt: `p10k configure`.
+- **neofetch** se ejecuta al abrir cada terminal nueva (una vez por
+  terminal). El instant prompt de p10k está desactivado para que la
+  salida de neofetch no se borre al dibujar el prompt.
 - Plugins: `git`, `sudo`, `extract`, `colored-man-pages`,
   `history-substring-search`, autosugerencias y resaltado de sintaxis.
 - `eza` sustituye a `ls` con iconos, `bat` a `cat` con colores y `zoxide`
@@ -202,6 +209,7 @@ awesome -k
   rosa, etiquetas en azul, valores en blanco y bloques de color del tema.
 - Muestra sistema, núcleo, uptime, paquetes, shell, escritorio, pantalla,
   terminal, CPU, GPU, memoria, ambos discos, batería y red.
+- Se ejecuta automáticamente al abrir una terminal nueva.
 - También puedes usar el alias `fetch`.
 
 ### Almacenamiento y particiones

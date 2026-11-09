@@ -32,8 +32,6 @@ elif [ -f /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme ]; then
     source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
 fi
 
-[ -f "$HOME/.p10k.zsh" ] && source "$HOME/.p10k.zsh"
-
 # Historial.
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=20000
@@ -74,6 +72,17 @@ alias dots='cd "$HOME/arch-e6400"'
 alias reload='source "$HOME/.zshrc"'
 alias fetch='neofetch'
 
-# Resaltado de sintaxis: debe ir al final del archivo.
+# Resaltado de sintaxis.
 [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] &&
     source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# Powerlevel10k: cargar la configuracion personal del prompt.
+[ -f "$HOME/.p10k.zsh" ] && source "$HOME/.p10k.zsh"
+
+# neofetch al abrir una terminal interactiva (una vez por terminal).
+# Sin instant prompt de p10k para que la salida no se borre.
+if [[ -o interactive && -t 1 && -z $NEOFETCH_SHOWN && $TERM != dumb ]] &&
+   command -v neofetch >/dev/null 2>&1; then
+    export NEOFETCH_SHOWN=1
+    command neofetch
+fi
